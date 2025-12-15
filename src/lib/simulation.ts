@@ -4,6 +4,7 @@ import type { SimulationResults, SimulationWindowResult } from "./types";
 // --- Core Input Parameters (Fixed Assumptions) ---
 const COMPETITOR_HIGH_BID_THRESHOLD = 2.00; // ₹2.00 - Bids above this are highly competitive
 const COMPETITOR_LOW_BID_THRESHOLD = 0.80;  // ₹0.80 - Bids below this are not competitive
+const BID_THROTTLE_THRESHOLD = 0.04; // Below this bid, clicks are 0
 const HIGH_CLICKS_PER_HOUR = 200; // Max potential clicks for a top bid at peak time
 const HOURS_PER_WINDOW = 6;
 
@@ -48,20 +49,21 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
     // 3. Calculate Bid based on target ROI
     const bid = simulatedPCVR * (aov / targetROI);
 
-    // 4. Simulate Clicks with improved logic, considering budget
+    // 4. Simulate Clicks with improved logic, considering budget and bid throttle
     let totalClicks = 0;
-    if (remainingBudget > 0 && bid > 0) {
+    if (remainingBudget > 0 && bid >= BID_THROTTLE_THRESHOLD) {
         let clickAttainmentFactor;
-        if (bid <= 0.1) { // Very low, non-competitive bids
-            clickAttainmentFactor = 0.05; // Gets only 5% of potential clicks
-        } else if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
-            // Rapidly ramps up from the floor
-            const bidPosition = (bid - 0.1) / (COMPETITOR_LOW_BID_THRESHOLD - 0.1);
-            clickAttainmentFactor = 0.05 + bidPosition * 0.45; // Ramps from 5% to 50%
+        
+        // This logic creates a non-linear curve for click attainment.
+        if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
+            // Lower-end bids (from throttle to low_threshold) - sharp penalty for being uncompetitive
+            const position = (bid - BID_THROTTLE_THRESHOLD) / (COMPETITOR_LOW_BID_THRESHOLD - BID_THROTTLE_THRESHOLD);
+            clickAttainmentFactor = Math.pow(position, 2) * 0.5; // Starts at 0, curves up to 50%
         } else if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
-            clickAttainmentFactor = 1.0; // Max clicks
+            // Bids above the high threshold get max clicks
+            clickAttainmentFactor = 1.0; 
         } else {
-            // Linear scaling in the competitive range
+            // Competitive range (between low and high thresholds) - linear scaling
             const bidRange = COMPETITOR_HIGH_BID_THRESHOLD - COMPETITOR_LOW_BID_THRESHOLD;
             const bidPosition = (bid - COMPETITOR_LOW_BID_THRESHOLD) / bidRange;
             clickAttainmentFactor = 0.5 + bidPosition * 0.5; // Ramps from 50% to 100%
