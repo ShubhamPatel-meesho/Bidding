@@ -11,7 +11,7 @@ import ResultsTable from './results-table';
 import SummaryCard from './summary-card';
 import OptimizationLog from './optimization-log';
 import { Card, CardContent } from '@/components/ui/card';
-import { BarChart, Clock, Droplets, Info, IndianRupee, BrainCircuit } from 'lucide-react';
+import { BarChart, Clock, Info, IndianRupee, BrainCircuit } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -60,21 +60,23 @@ async function findOptimalROIs(
     } else {
       score *= (1 + (budgetUtilization - 0.90) * 2); // Bonus for being in the sweet spot, amplified
     }
-
+    
+    let isBest = false;
     if (score > bestScore) {
       bestScore = score;
       bestROIs = currentROIs;
       bestResult = summary;
+      isBest = true;
     }
     
     // Report iteration back to the UI
     onIteration({
         iteration: i + 1,
-        roiTargets: currentROIs,
+        roiTargets: currentROIs.map(r => parseFloat(r.toFixed(2))),
         budgetUtilization: summary.budgetUtilisation,
         deliveredROI: summary.finalDeliveredROI,
         score: score,
-        isBest: bestROIs === currentROIs,
+        isBest: isBest,
     });
 
     if (bestResult) {
@@ -156,7 +158,11 @@ export default function ROISimulator() {
     setOptimizationLog([]);
 
     const handleIteration = (iteration: OptimizationIteration) => {
-        setOptimizationLog(prevLog => [...prevLog, iteration]);
+        setOptimizationLog(prevLog => {
+            const newLog = prevLog.map(item => ({...item, isBest: false}));
+            newLog.push(iteration);
+            return newLog;
+        });
     };
 
     const optimalROIs = await findOptimalROIs(form.getValues, runSimulation, handleIteration);
@@ -207,7 +213,7 @@ export default function ROISimulator() {
                           <Clock className="w-5 h-5 text-accent shrink-0 mt-0.5" />
                           <span>Input four ROI targets for consecutive 6-hour windows.</span>
                       </li>
-                      <li className="flex gap-3">
+                       <li className="flex gap-3">
                           <BrainCircuit className="w-5 h-5 text-accent shrink-0 mt-0.5" />
                           <span>Use "Find Optimal ROI" to get a suggested set of targets that aims for full budget use.</span>
                       </li>
