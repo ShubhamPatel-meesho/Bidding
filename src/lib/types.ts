@@ -26,3 +26,12 @@ export type SimulationResults = {
   windows: SimulationWindowResult[];
   summary: SimulationSummary;
 };
+
+export type OptimizationIteration = {
+  iteration: number;
+  roiTargets: number[];
+  budgetUtilization: number;
+  deliveredROI: number;
+  score: number;
+  isBest: boolean;
+};
