@@ -128,29 +128,6 @@ export default function ROISimulator() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 flex flex-col gap-8">
             <ROIInputForm form={form} onSubmit={onSubmit} isLoading={isLoading} />
-            <Card className="shadow-lg">
-                <CardContent className="pt-6">
-                    <h3 className="font-semibold text-lg mb-4 text-primary">How it Works</h3>
-                    <ul className="space-y-4 text-sm text-muted-foreground">
-                        <li className="flex gap-3">
-                            <IndianRupee className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                            <span>Set your Average Order Value (AOV) and a daily budget.</span>
-                        </li>
-                        <li className="flex gap-3">
-                            <Clock className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                            <span>Input four ROI targets for consecutive 6-hour windows.</span>
-                        </li>
-                        <li className="flex gap-3">
-                            <BarChart className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                            <span>The simulation calculates bids and clicks, stopping if the budget is exhausted.</span>
-                        </li>
-                        <li className="flex gap-3">
-                            <Info className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                            <span>Analyze the results to see the trade-off between aggressive and conservative strategies.</span>
-                        </li>
-                    </ul>
-                </CardContent>
-            </Card>
           </div>
           <div className="lg:col-span-2">
             {isLoading && !results && (
@@ -163,8 +140,8 @@ export default function ROISimulator() {
             )}
             {results && !isLoading && (
               <div className="flex flex-col gap-8 animate-in fade-in duration-500">
-                <ResultsTable results={results.windows} />
                 <SummaryCard summary={results.summary} failureReason={failureReason} />
+                <ResultsTable results={results.windows} />
               </div>
 
             )}
