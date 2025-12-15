@@ -89,7 +89,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
     // 5. Simulate Orders
     const actualCVR = simulatedPCVR * randomInRange(0.85, 1.15); // Tighter randomness
     const fractionalOrders = totalClicks * actualCVR;
-    const totalOrders = Math.round(fractionalOrders);
+    const totalOrders = Math.floor(fractionalOrders);
 
     // 6. Calculate Final Metrics for the window
     const totalSpend = totalClicks * bid;
