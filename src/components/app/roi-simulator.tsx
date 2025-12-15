@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -13,6 +14,7 @@ import SummaryCard from './summary-card';
 import Leaderboard from './leaderboard';
 import { Card, CardContent } from '@/components/ui/card';
 import { BarChart, Clock, Info, IndianRupee } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export default function ROISimulator() {
@@ -114,62 +116,80 @@ export default function ROISimulator() {
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 flex flex-col gap-8">
-          <ROIInputForm form={form} onSubmit={onSubmit} isLoading={isLoading} />
-          {leaderboard.length > 0 && <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect} onDelete={handleLeaderboardDelete} />}
-          <Card className="shadow-lg">
-              <CardContent className="pt-6">
-                  <h3 className="font-semibold text-lg mb-4 text-primary">How it Works</h3>
-                  <ul className="space-y-4 text-sm text-muted-foreground">
-                      <li className="flex gap-3">
-                          <IndianRupee className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                          <span>Set your Average Order Value (AOV) and a daily budget.</span>
-                      </li>
-                      <li className="flex gap-3">
-                          <Clock className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                          <span>Input four ROI targets for consecutive 6-hour windows.</span>
-                      </li>
-                      <li className="flex gap-3">
-                          <BarChart className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                          <span>The simulation calculates bids and clicks, stopping if the budget is exhausted.</span>
-                      </li>
-                      <li className="flex gap-3">
-                          <Info className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                          <span>Analyze the results to see the trade-off between aggressive and conservative strategies.</span>
-                      </li>
-                  </ul>
-              </CardContent>
-          </Card>
-        </div>
-        <div className="lg:col-span-2">
-          {isLoading && !results && (
-              <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
-                  <div className="flex flex-col items-center gap-4">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                      <p className="text-muted-foreground">Running simulation...</p>
-                  </div>
+    <Tabs defaultValue="simulator" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="simulator">Simulator</TabsTrigger>
+        <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+      </TabsList>
+      <TabsContent value="simulator" className="mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 flex flex-col gap-8">
+            <ROIInputForm form={form} onSubmit={onSubmit} isLoading={isLoading} />
+            <Card className="shadow-lg">
+                <CardContent className="pt-6">
+                    <h3 className="font-semibold text-lg mb-4 text-primary">How it Works</h3>
+                    <ul className="space-y-4 text-sm text-muted-foreground">
+                        <li className="flex gap-3">
+                            <IndianRupee className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                            <span>Set your Average Order Value (AOV) and a daily budget.</span>
+                        </li>
+                        <li className="flex gap-3">
+                            <Clock className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                            <span>Input four ROI targets for consecutive 6-hour windows.</span>
+                        </li>
+                        <li className="flex gap-3">
+                            <BarChart className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                            <span>The simulation calculates bids and clicks, stopping if the budget is exhausted.</span>
+                        </li>
+                        <li className="flex gap-3">
+                            <Info className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                            <span>Analyze the results to see the trade-off between aggressive and conservative strategies.</span>
+                        </li>
+                    </ul>
+                </CardContent>
+            </Card>
+          </div>
+          <div className="lg:col-span-2">
+            {isLoading && !results && (
+                <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                        <p className="text-muted-foreground">Running simulation...</p>
+                    </div>
+                </div>
+            )}
+            {results && !isLoading && (
+              <div className="flex flex-col gap-8 animate-in fade-in duration-500">
+                <ResultsTable results={results.windows} />
+                <SummaryCard summary={results.summary} failureReason={failureReason} />
               </div>
-          )}
-          {results && !isLoading && (
-            <div className="flex flex-col gap-8 animate-in fade-in duration-500">
-              <ResultsTable results={results.windows} />
-              <SummaryCard summary={results.summary} failureReason={failureReason} />
-            </div>
 
-          )}
-          {!isLoading && !results && (
-              <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
-                  <div className="text-center text-muted-foreground p-8">
-                      <BarChart className="mx-auto h-12 w-12 mb-4" />
-                      <h3 className="text-lg font-semibold">Ready to simulate?</h3>
-                      <p>Enter your AOV and ROI targets and click "Run Simulation" to see your projected results.</p>
-                  </div>
-              </div>
-          )}
+            )}
+            {!isLoading && !results && (
+                <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
+                    <div className="text-center text-muted-foreground p-8">
+                        <BarChart className="mx-auto h-12 w-12 mb-4" />
+                        <h3 className="text-lg font-semibold">Ready to simulate?</h3>
+                        <p>Enter your AOV and ROI targets and click "Run Simulation" to see your projected results.</p>
+                    </div>
+                </div>
+            )}
+          </div>
         </div>
-      </div>
-    </>
+      </TabsContent>
+      <TabsContent value="leaderboard" className="mt-6">
+        {leaderboard.length > 0 ? (
+            <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect} onDelete={handleLeaderboardDelete} />
+        ) : (
+            <div className="flex items-center justify-center h-[400px] bg-card rounded-lg border shadow-lg">
+                <div className="text-center text-muted-foreground p-8">
+                    <BarChart className="mx-auto h-12 w-12 mb-4" />
+                    <h3 className="text-lg font-semibold">Leaderboard is Empty</h3>
+                    <p>Successful simulation runs will appear here.</p>
+                </div>
+            </div>
+        )}
+      </TabsContent>
+    </Tabs>
   );
 }
