@@ -102,7 +102,7 @@ export default function ROISimulator() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       aov: 300,
-      budget: 100,
+      budget: 300,
       roi1: 15,
       roi2: 15,
       roi3: 15,
