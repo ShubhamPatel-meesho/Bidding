@@ -109,7 +109,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
       totalRevenue,
       deliveredROI,
       avgPCVR: contextualPCVR,
-      ordersToClicksRatio: totalClicks > 0 ? (fractionalOrders / totalClicks) : 0,
+      ordersToClicksRatio: totalClicks > 0 ? (totalOrders / totalClicks) : 0,
     });
   }
 
