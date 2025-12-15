@@ -14,7 +14,7 @@ const clickPotentialByWindow = [
   0.4, // 0-6h: Lower traffic
   1.0, // 6-12h: Ramping up to peak
   0.9, // 12-18h: High traffic, slight dip
-  0.7, // 18-24h: Dropping off
+  0.7, // 18-24h: Dropping off,
 ];
 
 // --- Helper Functions ---
@@ -55,7 +55,7 @@ export async function runSimulation(roiTargets: number[], aov: number): Promise<
         clickAttainmentFactor = 0.05; // Gets only 5% of potential clicks
     } else if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
         // Rapidly ramps up from the floor
-        const bidPosition = (bid - 0.1) / (COMPITOR_LOW_BID_THRESHOLD - 0.1);
+        const bidPosition = (bid - 0.1) / (COMPETITOR_LOW_BID_THRESHOLD - 0.1);
         clickAttainmentFactor = 0.05 + bidPosition * 0.45; // Ramps from 5% to 50%
     } else if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
         clickAttainmentFactor = 1.0; // Max clicks
