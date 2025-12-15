@@ -1,29 +1,38 @@
 'use server';
 
-const BASE_PCVR = 0.015; // Start with a higher base pCVR
+const BASE_PCVR = 0.015; // The pCVR for a "standard" campaign
 const BASE_AOV = 300; // The AOV at which BASE_PCVR is applicable
-const BASELINE_ROI = 5; // 5x
+const BASELINE_ROI = 5; // A typical or average ROI target
 
 // Helper function to generate a random number within a given range
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-// The pCVR is now adjusted based on AOV. As AOV increases, pCVR decreases.
+// The pCVR is adjusted based on AOV and the aggressiveness of the Target ROI.
 export async function getAdjustedPCVR(targetROI: number, aov: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
   try {
-    // Adjust base pCVR based on AOV. For every 100 rupees increase in AOV over the base, decrease pCVR by 10% of the base.
+    // 1. Adjust base pCVR based on AOV. Higher AOV means customers are expected to be more selective.
+    // For every 100 rupees increase in AOV over the base, decrease pCVR by 10% of the base.
     const aovFactor = Math.max(0, (aov - BASE_AOV) / 100);
     const aovAdjustedPCVR = BASE_PCVR * (1 - (aovFactor * 0.1));
 
-    let bias = 0;
-    if (targetROI > BASELINE_ROI) {
-      bias = 0.1; // Positive bias, increase pCVR by 10%
-    } else if (targetROI < BASELINE_ROI) {
-      bias = -0.1; // Negative bias, decrease pCVR by 10%
-    }
-
-    const finalAdjustedPCVR = aovAdjustedPCVR * (1 + bias) * randomInRange(0.9, 1.1);
+    // 2. Create a non-linear bias based on how much the targetROI deviates from the baseline.
+    // A much higher ROI target implies focusing on a very specific, high-intent audience, increasing pCVR.
+    // A lower ROI target is more aggressive, bidding on a wider audience, thus lowering the average pCVR.
+    let roiDifference = (targetROI - BASELINE_ROI) / BASELINE_ROI; // a percentage difference
     
-    return { adjustedPCVR: Math.max(0.001, finalAdjustedPCVR) }; // Ensure pCVR doesn't go to zero or negative
+    // Use a square root function to make the adjustment less aggressive.
+    // Positive difference (high tROI) increases pCVR, negative (low tROI) decreases it.
+    let bias = Math.sign(roiDifference) * Math.sqrt(Math.abs(roiDifference)) * 0.20; // 20% influence at its peak
+
+    // Limit the bias to prevent extreme values.
+    bias = Math.max(-0.5, Math.min(0.5, bias));
+
+    const finalAdjustedPCVR = aovAdjustedPCVR * (1 + bias);
+
+    // Add a small amount of randomness to simulate market fluctuations
+    const randomizedPCVR = finalAdjustedPCVR * randomInRange(0.95, 1.05);
+
+    return { adjustedPCVR: Math.max(0.001, randomizedPCVR) }; // Ensure pCVR doesn't go to zero or negative
   } catch (e) {
     console.error('Error in getAdjustedPCVR:', e);
     return { error: 'Failed to get adjustment. Using base pCVR.', adjustedPCVR: BASE_PCVR };
