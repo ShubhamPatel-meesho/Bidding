@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'AdStratSim: Ad Performance Simulator',
+  title: 'Bidding Simulator',
   description: 'Simulate ad performance and bidding strategies based on ROI targets.',
 };
 

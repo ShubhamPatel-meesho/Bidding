@@ -116,10 +116,11 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
   }, { totalClicks: 0, totalOrders: 0, totalSpend: 0, totalRevenue: 0 });
 
   const finalDeliveredROI = summary.totalSpend > 0 ? (summary.totalRevenue / summary.totalSpend) : 0;
+  const budgetUtilisation = budget > 0 ? (summary.totalSpend / budget) : 0;
 
   const results: SimulationResults = {
     windows: windowResults,
-    summary: { ...summary, finalDeliveredROI },
+    summary: { ...summary, finalDeliveredROI, budgetUtilisation, budget },
   };
   
   if (hasError) {
