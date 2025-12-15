@@ -21,6 +21,7 @@ export default function ROISimulator() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       aov: 300,
+      budget: 500,
       roi1: 4,
       roi2: 8,
       roi3: 3,
@@ -33,7 +34,7 @@ export default function ROISimulator() {
     setResults(null);
 
     const roiTargets = [data.roi1, data.roi2, data.roi3, data.roi4];
-    const simulationResult = await runSimulation(roiTargets, data.aov);
+    const simulationResult = await runSimulation(roiTargets, data.aov, data.budget);
 
     if ('error' in simulationResult) {
        toast({
@@ -62,7 +63,7 @@ export default function ROISimulator() {
                 <ul className="space-y-4 text-sm text-muted-foreground">
                     <li className="flex gap-3">
                         <IndianRupee className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span>Set your Average Order Value (AOV). A higher AOV may lead to a lower conversion rate.</span>
+                        <span>Set your Average Order Value (AOV) and a daily budget.</span>
                     </li>
                     <li className="flex gap-3">
                         <Clock className="w-5 h-5 text-accent shrink-0 mt-0.5" />
@@ -74,7 +75,7 @@ export default function ROISimulator() {
                     </li>
                     <li className="flex gap-3">
                         <BarChart className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span>The simulation calculates bids, clicks, and orders to forecast your performance.</span>
+                        <span>The simulation calculates bids and clicks, stopping if the budget is exhausted.</span>
                     </li>
                     <li className="flex gap-3">
                         <Info className="w-5 h-5 text-accent shrink-0 mt-0.5" />

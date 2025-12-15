@@ -10,6 +10,7 @@ import { Sparkles, IndianRupee } from 'lucide-react';
 
 export const formSchema = z.object({
   aov: z.coerce.number().positive({ message: "Must be positive" }),
+  budget: z.coerce.number().positive({ message: "Must be positive" }),
   roi1: z.coerce.number().positive({ message: "Must be positive" }),
   roi2: z.coerce.number().positive({ message: "Must be positive" }),
   roi3: z.coerce.number().positive({ message: "Must be positive" }),
@@ -29,27 +30,45 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle>Define Simulation Parameters</CardTitle>
-        <CardDescription>Enter your Average Order Value (AOV) and target ROI for each 6-hour window.</CardDescription>
+        <CardDescription>Enter your Average Order Value (AOV), budget, and target ROI for each 6-hour window.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="aov"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Average Order Value (AOV)</FormLabel>
-                  <FormControl>
-                      <div className="relative">
-                          <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="number" placeholder="300" {...field} className="pl-8" />
-                      </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="aov"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Average Order Value (AOV)</FormLabel>
+                    <FormControl>
+                        <div className="relative">
+                            <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input type="number" placeholder="300" {...field} className="pl-8" />
+                        </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="budget"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Daily Ads Budget</FormLabel>
+                    <FormControl>
+                        <div className="relative">
+                            <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input type="number" placeholder="500" {...field} className="pl-8" />
+                        </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
