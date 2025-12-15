@@ -4,11 +4,21 @@ const BASE_PCVR = 0.015; // The pCVR for a "standard" campaign
 const BASE_AOV = 300; // The AOV at which BASE_PCVR is applicable
 const BASELINE_ROI = 5; // A typical or average ROI target
 
+// Based on click potential, but we can use it to model CVR potential too.
+// Peak conversion intent is in the morning.
+const pCVR_MODIFIER_BY_WINDOW = [
+  0.85, // 0-6h: Lower intent
+  1.15, // 6-12h: Peak intent
+  1.05, // 12-18h: Still high, but dropping
+  0.95, // 18-24h: Dropping off
+];
+
+
 // Helper function to generate a random number within a given range
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
 // The pCVR is adjusted based on AOV and the aggressiveness of the Target ROI.
-export async function getAdjustedPCVR(targetROI: number, aov: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
+export async function getAdjustedPCVR(targetROI: number, aov: number, windowIndex: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
   try {
     // 1. Adjust base pCVR based on AOV. Higher AOV means customers are expected to be more selective.
     // For every 100 rupees increase in AOV over the base, decrease pCVR by 10% of the base.
@@ -27,10 +37,14 @@ export async function getAdjustedPCVR(targetROI: number, aov: number): Promise<{
     // Limit the bias to prevent extreme values.
     bias = Math.max(-0.5, Math.min(0.5, bias));
 
-    const finalAdjustedPCVR = aovAdjustedPCVR * (1 + bias);
+    const biasedPCVR = aovAdjustedPCVR * (1 + bias);
+
+    // 3. Apply the time-of-day modifier
+    const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_WINDOW[windowIndex];
+
 
     // Add a small amount of randomness to simulate market fluctuations
-    const randomizedPCVR = finalAdjustedPCVR * randomInRange(0.95, 1.05);
+    const randomizedPCVR = timeAdjustedPCVR * randomInRange(0.95, 1.05);
 
     return { adjustedPCVR: Math.max(0.001, randomizedPCVR) }; // Ensure pCVR doesn't go to zero or negative
   } catch (e) {

@@ -32,8 +32,8 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
   for (let i = 0; i < roiTargets.length; i++) {
     const targetROI = roiTargets[i];
     
-    // 1. Get Contextual pCVR based on Target ROI and AOV
-    const pCVRResponse = await getAdjustedPCVR(targetROI, aov);
+    // 1. Get Contextual pCVR based on Target ROI, AOV, and the time window
+    const pCVRResponse = await getAdjustedPCVR(targetROI, aov, i);
     let contextualPCVR: number;
     if ('error' in pCVRResponse) {
         hasError = true;
