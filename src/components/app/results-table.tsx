@@ -1,6 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { SimulationWindowResult } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface ResultsTableProps {
   results: SimulationWindowResult[];
@@ -51,10 +52,10 @@ export default function ResultsTable({ results }: ResultsTableProps) {
             </TableHeader>
             <TableBody>
               {rows.map(row => (
-                <TableRow key={row.label} className={row.isHighlight ? 'bg-accent/20' : ''}>
+                <TableRow key={row.label} className={cn(row.isHighlight ? 'bg-accent/20' : '')}>
                   <TableCell className="font-medium whitespace-nowrap">{row.label}</TableCell>
                   {results.map(windowResult => (
-                    <TableCell key={`${row.label}-${windowResult.name}`} className={`text-right tabular-nums whitespace-nowrap ${row.isHighlight ? 'font-bold text-accent-foreground' : ''}`}>
+                    <TableCell key={`${row.label}-${windowResult.name}`} className={cn('text-right tabular-nums whitespace-nowrap', row.isHighlight ? 'font-bold text-accent' : '')}>
                       {row.format(windowResult[row.key as keyof SimulationWindowResult] as number)}
                     </TableCell>
                   ))}
