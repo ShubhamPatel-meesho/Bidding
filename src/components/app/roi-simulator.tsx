@@ -6,99 +6,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from "@/hooks/use-toast";
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { runSimulation } from '@/lib/simulation';
-import type { OptimizationIteration, SimulationResults, SimulationSummary, LeaderboardEntry } from '@/lib/types';
+import type { SimulationResults, SimulationSummary, LeaderboardEntry } from '@/lib/types';
 import ROIInputForm, { formSchema, type ROIFormValues } from './roi-input-form';
 import ResultsTable from './results-table';
 import SummaryCard from './summary-card';
-import OptimizationLog from './optimization-log';
 import Leaderboard from './leaderboard';
 import { Card, CardContent } from '@/components/ui/card';
-import { BarChart, Clock, Info, IndianRupee, BrainCircuit } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
-
-
-async function findOptimalROIs(
-  getValues: () => ROIFormValues,
-  runSim: typeof runSimulation,
-  onIteration: (iteration: OptimizationIteration) => void
-): Promise<number[]> {
-  const { aov, budget } = getValues();
-  let bestROIs = [getValues().roi1, getValues().roi2, getValues().roi3, getValues().roi4];
-  let bestScore = -1;
-  let bestResult: SimulationSummary | null = null;
-
-  // This is a simple iterative search. It's not guaranteed to be the absolute "best" but will be fast.
-  const iterations = 30;
-  const step = 0.5; // How much to adjust ROI by each time
-
-  for (let i = 0; i < iterations; i++) {
-    const currentROIs = i === 0 ? bestROIs : bestROIs.map(r => {
-        // On later iterations, randomly nudge the ROI targets to explore
-        const adjustment = (Math.random() - 0.5) * step * 5; // bigger random jump
-        return Math.max(1, r + adjustment);
-    });
-
-    const result = await runSim(currentROIs, aov, budget);
-    const summary = result.summary;
-
-    // Scoring function: Prefers high ROI and ~95-100% budget utilization.
-    // Penalize heavily for overspending or significant underspending.
-    // **NEW**: Heavily penalize if budget is spent before the last window.
-    const budgetUtilization = summary.budgetUtilisation;
-    let score = summary.finalDeliveredROI;
-
-    if (summary.spentAllBudget) {
-        score *= 0.1; // Massive penalty for not lasting the day
-    } else if (budgetUtilization > 1.0) {
-      score *= 0.5; // Heavy penalty for going over budget
-    } else if (budgetUtilization < 0.90) {
-      score *= 0.7; // Penalty for underspending
-    } else {
-      score *= (1 + (budgetUtilization - 0.90) * 2); // Bonus for being in the sweet spot, amplified
-    }
-    
-    let isBest = false;
-    if (score > bestScore) {
-      bestScore = score;
-      bestROIs = currentROIs;
-      bestResult = summary;
-      isBest = true;
-    }
-    
-    // Report iteration back to the UI
-    onIteration({
-        iteration: i + 1,
-        roiTargets: currentROIs.map(r => parseFloat(r.toFixed(2))),
-        budgetUtilization: summary.budgetUtilisation,
-        deliveredROI: summary.finalDeliveredROI,
-        score: score,
-        isBest: isBest,
-    });
-
-    if (bestResult) {
-        // Adjust ROIs based on budget utilization. Aim for 98%
-        const budgetDiff = bestResult.budgetUtilisation - 0.98; 
-        // If overspent, increase ROIs (lower bids). If underspent, decrease ROIs (higher bids).
-        const adjustmentFactor = 1 - (budgetDiff * step); 
-        bestROIs = bestROIs.map(r => parseFloat((Math.max(1, r * adjustmentFactor)).toFixed(2)));
-    }
-  }
-
-  return bestROIs.map(r => parseFloat(r.toFixed(2)));
-}
+import { BarChart, Clock, Info, IndianRupee } from 'lucide-react';
 
 
 export default function ROISimulator() {
   const [results, setResults] = useState<SimulationResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [optimizationLog, setOptimizationLog] = useState<OptimizationIteration[]>([]);
   const [failureReason, setFailureReason] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useLocalStorage<LeaderboardEntry[]>('leaderboard', []);
   const { toast } = useToast();
@@ -157,7 +76,9 @@ export default function ROISimulator() {
         name: data.name,
         finalDeliveredROI: summary.finalDeliveredROI,
         budgetUtilisation: summary.budgetUtilisation,
-        roiTargets: roiTargets
+        roiTargets: roiTargets,
+        aov: data.aov,
+        budget: data.budget
       };
       setLeaderboard([newEntry, ...leaderboard].sort((a,b) => b.finalDeliveredROI - a.finalDeliveredROI).slice(0, 10));
       toast({
@@ -169,44 +90,11 @@ export default function ROISimulator() {
     
     setIsLoading(false);
   };
-  
-  const handleOptimize = async () => {
-    setIsOptimizing(true);
-    setResults(null);
-    setFailureReason(null);
-    setOptimizationLog([]);
-
-    const handleIteration = (iteration: OptimizationIteration) => {
-        setOptimizationLog(prevLog => {
-            const newLog = prevLog.map(item => ({...item, isBest: false}));
-            newLog.push(iteration);
-            return newLog;
-        });
-    };
-
-    const optimalROIs = await findOptimalROIs(form.getValues, runSimulation, handleIteration);
-    
-    form.setValue('roi1', optimalROIs[0]);
-    form.setValue('roi2', optimalROIs[1]);
-    form.setValue('roi3', optimalROIs[2]);
-    form.setValue('roi4', optimalROIs[3]);
-    form.setValue('name', 'Optimized Strategy');
-    
-    toast({
-        title: "Optimal ROI Targets Found!",
-        description: "The form has been updated. Running final simulation.",
-    });
-
-    // Short delay to allow user to see the "finalizing" state
-    setTimeout(async () => {
-        setIsOptimizing(false);
-        // Automatically run simulation with optimized values
-        await onSubmit(form.getValues());
-    }, 1500);
-  }
 
   const handleLeaderboardSelect = (entry: LeaderboardEntry) => {
     form.setValue('name', entry.name);
+    form.setValue('aov', entry.aov);
+    form.setValue('budget', entry.budget);
     form.setValue('roi1', entry.roiTargets[0]);
     form.setValue('roi2', entry.roiTargets[1]);
     form.setValue('roi3', entry.roiTargets[2]);
@@ -217,23 +105,20 @@ export default function ROISimulator() {
     });
   }
 
+  const handleLeaderboardDelete = (id: string) => {
+    setLeaderboard(leaderboard.filter(entry => entry.id !== id));
+    toast({
+      title: 'Entry Deleted',
+      description: `The entry has been removed from the leaderboard.`,
+    });
+  }
+
   return (
     <>
-      <Dialog open={isOptimizing}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Finding Optimal ROI Targets...</DialogTitle>
-            <DialogDescription>
-              The algorithm is running multiple simulations to find a set of ROI targets that maximizes returns while trying to spend the entire budget by the end of the day.
-            </DialogDescription>
-          </DialogHeader>
-          <OptimizationLog log={optimizationLog} />
-        </DialogContent>
-      </Dialog>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 flex flex-col gap-8">
-          <ROIInputForm form={form} onSubmit={onSubmit} onOptimize={handleOptimize} isLoading={isLoading} isOptimizing={isOptimizing} />
-          {leaderboard.length > 0 && <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect}/>}
+          <ROIInputForm form={form} onSubmit={onSubmit} isLoading={isLoading} />
+          {leaderboard.length > 0 && <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect} onDelete={handleLeaderboardDelete} />}
           <Card className="shadow-lg">
               <CardContent className="pt-6">
                   <h3 className="font-semibold text-lg mb-4 text-primary">How it Works</h3>
@@ -245,10 +130,6 @@ export default function ROISimulator() {
                       <li className="flex gap-3">
                           <Clock className="w-5 h-5 text-accent shrink-0 mt-0.5" />
                           <span>Input four ROI targets for consecutive 6-hour windows.</span>
-                      </li>
-                       <li className="flex gap-3">
-                          <BrainCircuit className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                          <span>Use "Find Optimal ROI" to get a suggested set of targets that aims for full budget use.</span>
                       </li>
                       <li className="flex gap-3">
                           <BarChart className="w-5 h-5 text-accent shrink-0 mt-0.5" />
@@ -263,11 +144,11 @@ export default function ROISimulator() {
           </Card>
         </div>
         <div className="lg:col-span-2">
-          {(isLoading || isOptimizing) && !results && (
+          {isLoading && !results && (
               <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
                   <div className="flex flex-col items-center gap-4">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                      <p className="text-muted-foreground">{isOptimizing ? 'Optimizing targets...' : 'Running simulation...'}</p>
+                      <p className="text-muted-foreground">Running simulation...</p>
                   </div>
               </div>
           )}
@@ -278,7 +159,7 @@ export default function ROISimulator() {
             </div>
 
           )}
-          {!isLoading && !isOptimizing && !results && (
+          {!isLoading && !results && (
               <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
                   <div className="text-center text-muted-foreground p-8">
                       <BarChart className="mx-auto h-12 w-12 mb-4" />

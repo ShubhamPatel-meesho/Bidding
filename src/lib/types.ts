@@ -27,19 +27,12 @@ export type SimulationResults = {
   summary: SimulationSummary;
 };
 
-export type OptimizationIteration = {
-  iteration: number;
-  roiTargets: number[];
-  budgetUtilization: number;
-  deliveredROI: number;
-  score: number;
-  isBest: boolean;
-};
-
 export type LeaderboardEntry = {
   id: string;
   name: string;
   finalDeliveredROI: number;
   budgetUtilisation: number;
   roiTargets: number[];
+  aov: number;
+  budget: number;
 };

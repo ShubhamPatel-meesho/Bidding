@@ -6,8 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, BrainCircuit, Trophy } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { Sparkles, IndianRupee, Trophy } from 'lucide-react';
 
 export const formSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
@@ -24,13 +23,10 @@ export type ROIFormValues = z.infer<typeof formSchema>;
 interface ROIInputFormProps {
   form: UseFormReturn<ROIFormValues>;
   onSubmit: SubmitHandler<ROIFormValues>;
-  onOptimize: () => void;
   isLoading: boolean;
-  isOptimizing: boolean;
 }
 
-export default function ROIInputForm({ form, onSubmit, onOptimize, isLoading, isOptimizing }: ROIInputFormProps) {
-  const isButtonDisabled = isLoading || isOptimizing;
+export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputFormProps) {
   
   return (
     <Card className="shadow-lg">
@@ -157,14 +153,8 @@ export default function ROIInputForm({ form, onSubmit, onOptimize, isLoading, is
                 )}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isButtonDisabled}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run Simulation </>}
-            </Button>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or</span>
-            </div>
-             <Button type="button" variant="outline" className="w-full" onClick={onOptimize} disabled={isButtonDisabled}>
-                {isOptimizing ? 'Optimizing...' : <> <BrainCircuit className="mr-2 h-4 w-4" /> Find Optimal ROI</>}
             </Button>
           </form>
         </Form>
