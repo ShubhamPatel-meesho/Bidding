@@ -35,7 +35,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
       <CardContent>
         <div className="mb-6 p-4 bg-secondary rounded-lg text-center">
             <h4 className="text-sm font-medium text-secondary-foreground">Seller-Asked ROI (Guideline)</h4>
-            <p className="text-2xl font-bold text-primary">5x</p>
+            <p className="text-2xl font-bold text-primary">15x</p>
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
