@@ -130,18 +130,20 @@ export default function ROISimulator() {
     }
 
     const { summary } = simulationResult;
-    let reason = "";
+    const reasons: string[] = [];
 
     if (summary.spentAllBudget) {
-      reason = "Budget was exhausted before the end of the day.";
-    } else if (summary.budgetUtilisation < 0.8) {
-      reason = `Budget utilization (${(summary.budgetUtilisation * 100).toFixed(1)}%) is below the 80% threshold.`;
-    } else if (summary.finalDeliveredROI < SELLER_ROI_TARGET) {
-      reason = `Delivered ROI (${summary.finalDeliveredROI.toFixed(2)}x) is less than the Seller-Asked ROI of ${SELLER_ROI_TARGET}x.`;
+      reasons.push("Budget was exhausted before the end of the day.");
+    }
+    if (summary.budgetUtilisation < 0.8) {
+      reasons.push(`Budget utilization (${(summary.budgetUtilisation * 100).toFixed(1)}%) is below the 80% threshold.`);
+    }
+    if (summary.finalDeliveredROI < SELLER_ROI_TARGET) {
+      reasons.push(`Delivered ROI (${summary.finalDeliveredROI.toFixed(2)}x) is less than the Seller-Asked ROI of ${SELLER_ROI_TARGET}x.`);
     }
 
-    if (reason) {
-      setFailureReason(reason);
+    if (reasons.length > 0) {
+      setFailureReason(reasons.join(' '));
     }
     
     setIsLoading(false);
