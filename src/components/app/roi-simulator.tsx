@@ -97,9 +97,9 @@ export default function ROISimulator() {
 
   const handleLeaderboardSelect = (entry: LeaderboardEntry) => {
     form.setValue('name', entry.name);
-    form.setValue('aov', entry.aov);
-    form.setValue('budget', entry.budget);
-    form.setValue('sellerRoi', entry.sellerRoi);
+    form.setValue('aov', entry.aov, { shouldValidate: true });
+    form.setValue('budget', entry.budget, { shouldValidate: true });
+    form.setValue('sellerRoi', entry.sellerRoi, { shouldValidate: true });
     form.setValue('roi1', entry.roiTargets[0]);
     form.setValue('roi2', entry.roiTargets[1]);
     form.setValue('roi3', entry.roiTargets[2]);
