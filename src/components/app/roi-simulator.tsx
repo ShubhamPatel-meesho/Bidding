@@ -30,7 +30,7 @@ export default function ROISimulator() {
       name: `Strategy #${leaderboard.length + 1}`,
       aov: 300,
       budget: 300,
-      sellerRoi: 10,
+      sellerRoi: 8,
       roi1: 15,
       roi2: 15,
       roi3: 15,
