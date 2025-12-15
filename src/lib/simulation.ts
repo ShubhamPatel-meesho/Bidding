@@ -27,6 +27,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
   let hasError = false;
   let errorMessage = "An issue occurred during simulation. Simulation ran with base values.";
   let remainingBudget = budget;
+  let spentAllBudget = false;
 
   for (let i = 0; i < roiTargets.length; i++) {
     const targetROI = roiTargets[i];
@@ -77,6 +78,11 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
         // Determine clicks based on budget
         const affordableClicks = remainingBudget / bid;
         totalClicks = Math.min(potentialWindowClicks, affordableClicks);
+
+        if (totalClicks >= affordableClicks && i < roiTargets.length -1) {
+          spentAllBudget = true;
+        }
+
     }
 
 
@@ -120,7 +126,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 
   const results: SimulationResults = {
     windows: windowResults,
-    summary: { ...summary, finalDeliveredROI, budgetUtilisation, budget },
+    summary: { ...summary, finalDeliveredROI, budgetUtilisation, budget, spentAllBudget },
   };
   
   if (hasError) {

@@ -19,6 +19,7 @@ export type SimulationSummary = {
   finalDeliveredROI: number;
   budget: number;
   budgetUtilisation: number;
+  spentAllBudget: boolean;
 };
 
 export type SimulationResults = {

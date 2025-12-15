@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { SimulationSummary } from '@/lib/types';
-import { ArrowUp, ShoppingCart, IndianRupee, MousePointerClick, Percent } from 'lucide-react';
+import { ArrowUp, ShoppingCart, IndianRupee, MousePointerClick, Percent, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface SummaryCardProps {
   summary: SimulationSummary;
@@ -17,7 +19,20 @@ const formatCurrency = (value: number) => {
 
 const formatPercentage = (value: number) => `${(value * 100).toFixed(1)}%`;
 
-const SummaryItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string }) => (
+const SummaryItem = ({ 
+  icon: Icon, 
+  label, 
+  value, 
+  valueClassName,
+  tooltipContent 
+}: { 
+  icon: React.ElementType, 
+  label: string, 
+  value: string, 
+  valueClassName?: string,
+  tooltipContent?: React.ReactNode
+}) => {
+  const content = (
     <div className="flex items-center justify-between p-4 rounded-lg bg-background">
         <div className="flex items-center gap-4">
             <div className="p-2 bg-accent/20 rounded-md">
@@ -25,11 +40,31 @@ const SummaryItem = ({ icon: Icon, label, value }: { icon: React.ElementType, la
             </div>
             <span className="text-muted-foreground">{label}</span>
         </div>
-        <span className="font-semibold text-lg tabular-nums">{value}</span>
+        <span className={cn("font-semibold text-lg tabular-nums", valueClassName)}>{value}</span>
     </div>
-)
+  );
+
+  if (tooltipContent) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {content}
+          </TooltipTrigger>
+          <TooltipContent>
+            {tooltipContent}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+  }
+
+  return content;
+}
 
 export default function SummaryCard({ summary }: SummaryCardProps) {
+  const isBudgetExhaustedEarly = summary.spentAllBudget;
+
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -41,7 +76,15 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
             <SummaryItem icon={MousePointerClick} label="Total Clicks" value={summary.totalClicks.toLocaleString()} />
             <SummaryItem icon={ShoppingCart} label="Total Orders" value={summary.totalOrders.toLocaleString()} />
             <SummaryItem icon={IndianRupee} label="Total Ad Spend" value={formatCurrency(summary.totalSpend)} />
-            <SummaryItem icon={Percent} label="Budget Utilisation" value={formatPercentage(summary.budgetUtilisation)} />
+            <SummaryItem 
+              icon={isBudgetExhaustedEarly ? Info : Percent}
+              label="Budget Utilisation" 
+              value={formatPercentage(summary.budgetUtilisation)}
+              valueClassName={isBudgetExhaustedEarly ? 'text-destructive' : ''}
+              tooltipContent={isBudgetExhaustedEarly ? (
+                  <p className="max-w-xs">Budget exhausted before the day ended, missing potential ROI in later hours.</p>
+              ) : undefined}
+            />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SummaryItem icon={IndianRupee} label="Total Revenue" value={formatCurrency(summary.totalRevenue)} />
