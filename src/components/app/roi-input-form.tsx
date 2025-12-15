@@ -33,6 +33,10 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
         <CardDescription>Enter your Average Order Value (AOV), budget, and target ROI for each 6-hour window.</CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-6 p-4 bg-secondary rounded-lg text-center">
+            <h4 className="text-sm font-medium text-secondary-foreground">Seller-Asked ROI (Guideline)</h4>
+            <p className="text-2xl font-bold text-primary">5x</p>
+        </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
