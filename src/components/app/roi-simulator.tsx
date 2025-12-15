@@ -27,7 +27,7 @@ export default function ROISimulator() {
   const form = useForm<ROIFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: `Strategy #${leaderboard.length + 1}`,
+      name: `My Strategy`,
       aov: 300,
       budget: 300,
       sellerRoi: 8,
@@ -89,7 +89,6 @@ export default function ROISimulator() {
         title: "Success!",
         description: `${data.name} was added to the leaderboard.`,
       });
-      form.setValue('name', `Strategy #${leaderboard.length + 2}`);
     }
     
     setIsLoading(false);
