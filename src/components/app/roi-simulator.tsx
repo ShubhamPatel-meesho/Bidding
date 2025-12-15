@@ -95,6 +95,7 @@ export default function ROISimulator() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationLog, setOptimizationLog] = useState<OptimizationIteration[]>([]);
+  const [failureReason, setFailureReason] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<ROIFormValues>({
@@ -112,12 +113,12 @@ export default function ROISimulator() {
   const onSubmit: SubmitHandler<ROIFormValues> = async (data) => {
     setIsLoading(true);
     setResults(null);
+    setFailureReason(null);
     const SELLER_ROI_TARGET = 5;
 
     const roiTargets = [data.roi1, data.roi2, data.roi3, data.roi4];
     const simulationResult = await runSimulation(roiTargets, data.aov, data.budget);
     
-    // Always set results to show the data, even if it "failed"
     setResults(simulationResult);
 
     if ('error' in simulationResult) {
@@ -128,28 +129,19 @@ export default function ROISimulator() {
       });
     }
 
-    // --- Failure Condition Checks ---
     const { summary } = simulationResult;
-    let failed = false;
-    let failureReason = "";
+    let reason = "";
 
     if (summary.spentAllBudget) {
-      failed = true;
-      failureReason = "Budget was exhausted before the end of the day.";
+      reason = "Budget was exhausted before the end of the day.";
     } else if (summary.budgetUtilisation < 0.8) {
-      failed = true;
-      failureReason = `Budget utilization (${(summary.budgetUtilisation * 100).toFixed(1)}%) is below 80%.`;
+      reason = `Budget utilization (${(summary.budgetUtilisation * 100).toFixed(1)}%) is below the 80% threshold.`;
     } else if (summary.finalDeliveredROI < SELLER_ROI_TARGET) {
-      failed = true;
-      failureReason = `Delivered ROI (${summary.finalDeliveredROI.toFixed(2)}x) is less than the Seller-Asked ROI (${SELLER_ROI_TARGET}x).`;
+      reason = `Delivered ROI (${summary.finalDeliveredROI.toFixed(2)}x) is less than the Seller-Asked ROI of ${SELLER_ROI_TARGET}x.`;
     }
 
-    if (failed) {
-      toast({
-        variant: "destructive",
-        title: "Simulation Failed",
-        description: failureReason,
-      });
+    if (reason) {
+      setFailureReason(reason);
     }
     
     setIsLoading(false);
@@ -158,6 +150,7 @@ export default function ROISimulator() {
   const handleOptimize = async () => {
     setIsOptimizing(true);
     setResults(null);
+    setFailureReason(null);
     setOptimizationLog([]);
 
     const handleIteration = (iteration: OptimizationIteration) => {
@@ -240,8 +233,9 @@ export default function ROISimulator() {
           {results && !isLoading && (
             <div className="flex flex-col gap-8 animate-in fade-in duration-500">
               <ResultsTable results={results.windows} />
-              <SummaryCard summary={results.summary} />
+              <SummaryCard summary={results.summary} failureReason={failureReason} />
             </div>
+
           )}
           {!isLoading && !isOptimizing && !results && (
               <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">

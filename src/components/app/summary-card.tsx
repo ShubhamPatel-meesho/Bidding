@@ -1,11 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { SimulationSummary } from '@/lib/types';
-import { ArrowUp, ShoppingCart, IndianRupee, MousePointerClick, Percent, Info } from 'lucide-react';
+import { ArrowUp, ShoppingCart, IndianRupee, MousePointerClick, Percent, Info, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface SummaryCardProps {
   summary: SimulationSummary;
+  failureReason: string | null;
 }
 
 const formatCurrency = (value: number) => {
@@ -62,7 +64,7 @@ const SummaryItem = ({
   return content;
 }
 
-export default function SummaryCard({ summary }: SummaryCardProps) {
+export default function SummaryCard({ summary, failureReason }: SummaryCardProps) {
   const isBudgetExhaustedEarly = summary.spentAllBudget;
 
   return (
@@ -89,6 +91,17 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SummaryItem icon={IndianRupee} label="Total Revenue" value={formatCurrency(summary.totalRevenue)} />
         </div>
+
+        {failureReason && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Simulation Failed</AlertTitle>
+            <AlertDescription>
+              {failureReason}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-lg bg-primary text-primary-foreground shadow-xl">
             <div className="flex items-center gap-4">
                 <div className="p-3 bg-primary-foreground/20 rounded-lg">
