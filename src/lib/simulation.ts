@@ -33,8 +33,8 @@ export async function runSimulation(roiTargets: number[]): Promise<SimulationRes
         contextualPCVR = pCVRResponse.adjustedPCVR;
     }
 
-    // 2. pCVR Variation for simulation
-    const simulatedPCVR = contextualPCVR * randomInRange(0.8, 1.2);
+    // 2. pCVR Variation for simulation is now handled inside getAdjustedPCVR
+    const simulatedPCVR = contextualPCVR;
     
     // 3. Calculate Bid
     // Target ROI is in %, so divide by 100
@@ -89,7 +89,7 @@ export async function runSimulation(roiTargets: number[]): Promise<SimulationRes
   };
   
   if (hasAIError) {
-      return { ...results, error: "An issue occurred with the AI model. Simulation ran with base values." };
+      return { ...results, error: "An issue occurred during simulation. Simulation ran with base values." };
   }
 
   return results;
