@@ -22,10 +22,10 @@ export default function ROISimulator() {
     defaultValues: {
       aov: 300,
       budget: 500,
-      roi1: 4,
-      roi2: 8,
-      roi3: 3,
-      roi4: 6,
+      roi1: 15,
+      roi2: 15,
+      roi3: 15,
+      roi4: 15,
     },
   });
 

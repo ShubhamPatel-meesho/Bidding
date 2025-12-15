@@ -82,7 +82,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                     <FormLabel>Target 1 (0-6h)</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <Input type="number" placeholder="4" {...field} />
+                            <Input type="number" placeholder="15" {...field} />
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -97,7 +97,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                     <FormLabel>Target 2 (6-12h)</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <Input type="number" placeholder="8" {...field} />
+                            <Input type="number" placeholder="15" {...field} />
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -112,7 +112,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                     <FormLabel>Target 3 (12-18h)</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <Input type="number" placeholder="3" {...field} />
+                            <Input type="number" placeholder="15" {...field} />
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -127,7 +127,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                     <FormLabel>Target 4 (18-24h)</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <Input type="number" placeholder="6" {...field} />
+                            <Input type="number" placeholder="15" {...field} />
                         </div>
                     </FormControl>
                     <FormMessage />
