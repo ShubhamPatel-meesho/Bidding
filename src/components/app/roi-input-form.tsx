@@ -60,7 +60,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                 name="aov"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Average Order Value (AOV)</FormLabel>
+                    <FormLabel>Average Order Value</FormLabel>
                     <FormControl>
                         <div className="relative">
                             <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
