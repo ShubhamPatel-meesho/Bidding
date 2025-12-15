@@ -1,7 +1,7 @@
 'use server';
 
 const AVG_PCVR = 0.01; // 1.00%
-const BASELINE_ROI = 500; // 500%
+const BASELINE_ROI = 5; // 5x
 
 // Helper function to generate a random number within a given range
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;

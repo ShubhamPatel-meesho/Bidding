@@ -28,7 +28,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle>Define ROI Targets</CardTitle>
-        <CardDescription>Enter your target ROI for each 6-hour window.</CardDescription>
+        <CardDescription>Enter your target ROI for each 6-hour window. This should be a multiplier (e.g., 5 for 5x ROI).</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -42,8 +42,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                     <FormLabel>Target 1 (0-6h)</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <Input type="number" placeholder="400" {...field} />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                            <Input type="number" placeholder="4" {...field} />
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -58,8 +57,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                     <FormLabel>Target 2 (6-12h)</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <Input type="number" placeholder="800" {...field} />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                            <Input type="number" placeholder="8" {...field} />
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -74,8 +72,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                     <FormLabel>Target 3 (12-18h)</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <Input type="number" placeholder="300" {...field} />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                            <Input type="number" placeholder="3" {...field} />
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -90,8 +87,7 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                     <FormLabel>Target 4 (18-24h)</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <Input type="number" placeholder="600" {...field} />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                            <Input type="number" placeholder="6" {...field} />
                         </div>
                     </FormControl>
                     <FormMessage />

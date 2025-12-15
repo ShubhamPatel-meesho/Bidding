@@ -52,7 +52,7 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
                 </div>
             </div>
             <div className="text-4xl font-bold tracking-tight">
-                {summary.finalDeliveredROI.toFixed(0)}%
+                {summary.finalDeliveredROI.toFixed(2)}x
             </div>
         </div>
       </CardContent>

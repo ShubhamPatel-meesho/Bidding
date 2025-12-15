@@ -20,10 +20,10 @@ export default function ROISimulator() {
   const form = useForm<ROIFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      roi1: 400,
-      roi2: 800,
-      roi3: 300,
-      roi4: 600,
+      roi1: 4,
+      roi2: 8,
+      roi3: 3,
+      roi4: 6,
     },
   });
 
@@ -37,7 +37,7 @@ export default function ROISimulator() {
     if ('error' in simulationResult) {
        toast({
         variant: "destructive",
-        title: "AI Model Warning",
+        title: "Simulation Warning",
         description: simulationResult.error,
       });
       // Still set results if there's an error, as the simulation runs with fallbacks
@@ -65,7 +65,7 @@ export default function ROISimulator() {
                     </li>
                     <li className="flex gap-3">
                         <Droplets className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span>Our AI adjusts conversion rates based on your targets, simulating real-world auction dynamics.</span>
+                        <span>The simulation adjusts conversion rates based on your targets, simulating real-world auction dynamics.</span>
                     </li>
                     <li className="flex gap-3">
                         <BarChart className="w-5 h-5 text-accent shrink-0 mt-0.5" />

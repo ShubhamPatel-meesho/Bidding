@@ -22,13 +22,13 @@ export default function ResultsTable({ results }: ResultsTableProps) {
   ];
 
   const rows = [
-    { label: 'Input ROI Target', key: 'targetROI', format: (v: number) => `${v}%` },
+    { label: 'Input ROI Target', key: 'targetROI', format: (v: number) => `${v}x` },
     { label: 'Avg. Calculated Bid', key: 'avgBid', format: formatCurrency },
     { label: 'Total Clicks', key: 'totalClicks', format: (v: number) => v.toLocaleString() },
     { label: 'Total Orders', key: 'totalOrders', format: (v: number) => v.toLocaleString() },
     { label: 'Total Ad Spend', key: 'totalSpend', format: formatCurrency },
     { label: 'Total Revenue', key: 'totalRevenue', format: formatCurrency },
-    { label: 'Delivered ROI', key: 'deliveredROI', format: (v: number) => `${v.toFixed(0)}%`, isHighlight: true },
+    { label: 'Delivered ROI', key: 'deliveredROI', format: (v: number) => `${v.toFixed(2)}x`, isHighlight: true },
   ];
 
   return (
