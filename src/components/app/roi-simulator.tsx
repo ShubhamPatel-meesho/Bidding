@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from "@/hooks/use-toast";
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { runSimulation } from '@/lib/simulation';
-import type { OptimizationIteration, SimulationResults, SimulationSummary } from '@/lib/types';
+import type { OptimizationIteration, SimulationResults, SimulationSummary, LeaderboardEntry } from '@/lib/types';
 import ROIInputForm, { formSchema, type ROIFormValues } from './roi-input-form';
 import ResultsTable from './results-table';
 import SummaryCard from './summary-card';
 import OptimizationLog from './optimization-log';
+import Leaderboard from './leaderboard';
 import { Card, CardContent } from '@/components/ui/card';
 import { BarChart, Clock, Info, IndianRupee, BrainCircuit } from 'lucide-react';
 import {
@@ -84,7 +86,7 @@ async function findOptimalROIs(
         const budgetDiff = bestResult.budgetUtilisation - 0.98; 
         // If overspent, increase ROIs (lower bids). If underspent, decrease ROIs (higher bids).
         const adjustmentFactor = 1 - (budgetDiff * step); 
-        bestROIs = bestROIs.map(r => Math.max(1, r * adjustmentFactor));
+        bestROIs = bestROIs.map(r => parseFloat((Math.max(1, r * adjustmentFactor)).toFixed(2)));
     }
   }
 
@@ -98,11 +100,13 @@ export default function ROISimulator() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationLog, setOptimizationLog] = useState<OptimizationIteration[]>([]);
   const [failureReason, setFailureReason] = useState<string | null>(null);
+  const [leaderboard, setLeaderboard] = useLocalStorage<LeaderboardEntry[]>('leaderboard', []);
   const { toast } = useToast();
 
   const form = useForm<ROIFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: `Strategy #${leaderboard.length + 1}`,
       aov: 300,
       budget: 300,
       roi1: 15,
@@ -146,6 +150,21 @@ export default function ROISimulator() {
 
     if (reasons.length > 0) {
       setFailureReason(reasons.join(' '));
+    } else {
+      // Success! Add to leaderboard
+      const newEntry: LeaderboardEntry = {
+        id: new Date().toISOString(),
+        name: data.name,
+        finalDeliveredROI: summary.finalDeliveredROI,
+        budgetUtilisation: summary.budgetUtilisation,
+        roiTargets: roiTargets
+      };
+      setLeaderboard([newEntry, ...leaderboard].sort((a,b) => b.finalDeliveredROI - a.finalDeliveredROI).slice(0, 10));
+      toast({
+        title: "Success!",
+        description: `${data.name} was added to the leaderboard.`,
+      });
+      form.setValue('name', `Strategy #${leaderboard.length + 2}`);
     }
     
     setIsLoading(false);
@@ -171,6 +190,7 @@ export default function ROISimulator() {
     form.setValue('roi2', optimalROIs[1]);
     form.setValue('roi3', optimalROIs[2]);
     form.setValue('roi4', optimalROIs[3]);
+    form.setValue('name', 'Optimized Strategy');
     
     toast({
         title: "Optimal ROI Targets Found!",
@@ -183,6 +203,18 @@ export default function ROISimulator() {
         // Automatically run simulation with optimized values
         await onSubmit(form.getValues());
     }, 1500);
+  }
+
+  const handleLeaderboardSelect = (entry: LeaderboardEntry) => {
+    form.setValue('name', entry.name);
+    form.setValue('roi1', entry.roiTargets[0]);
+    form.setValue('roi2', entry.roiTargets[1]);
+    form.setValue('roi3', entry.roiTargets[2]);
+    form.setValue('roi4', entry.roiTargets[3]);
+    toast({
+      title: 'Loaded from Leaderboard',
+      description: `Parameters for "${entry.name}" have been loaded into the form.`,
+    });
   }
 
   return (
@@ -201,6 +233,7 @@ export default function ROISimulator() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 flex flex-col gap-8">
           <ROIInputForm form={form} onSubmit={onSubmit} onOptimize={handleOptimize} isLoading={isLoading} isOptimizing={isOptimizing} />
+          {leaderboard.length > 0 && <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect}/>}
           <Card className="shadow-lg">
               <CardContent className="pt-6">
                   <h3 className="font-semibold text-lg mb-4 text-primary">How it Works</h3>

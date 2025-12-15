@@ -35,3 +35,11 @@ export type OptimizationIteration = {
   score: number;
   isBest: boolean;
 };
+
+export type LeaderboardEntry = {
+  id: string;
+  name: string;
+  finalDeliveredROI: number;
+  budgetUtilisation: number;
+  roiTargets: number[];
+};
