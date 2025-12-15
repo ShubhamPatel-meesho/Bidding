@@ -2,15 +2,14 @@ import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult } from "./types";
 
 // --- Core Input Parameters (Fixed Assumptions) ---
-const COMPETITOR_HIGH_BID_THRESHOLD = 2.00; // ₹2.00
-const COMPETITOR_LOW_BID_THRESHOLD = 0.80; // ₹0.80
-const LOW_CLICKS_PER_HOUR = 80; // Based on chart, early morning
-const MEDIUM_CLICKS_PER_HOUR = 120; // Based on chart, evening
-const HIGH_CLICKS_PER_HOUR = 200; // Based on chart, daytime peak
+const COMPETITOR_HIGH_BID_THRESHOLD = 2.00; // ₹2.00 - Bids above this are highly competitive
+const COMPETITOR_LOW_BID_THRESHOLD = 0.80;  // ₹0.80 - Bids below this are not competitive
+const LOW_CLICKS_PER_HOUR = 80;
+const MEDIUM_CLICKS_PER_HOUR = 120;
+const HIGH_CLICKS_PER_HOUR = 200; // Max potential clicks for a top bid at peak time
 const HOURS_PER_WINDOW = 6;
 
 // --- Time-based click potential based on the provided chart ---
-// Approximating the trend from the chart for each 6-hour window
 const clickPotentialByWindow = [
   0.4, // 0-6h: Lower traffic
   1.0, // 6-12h: Ramping up to peak
@@ -44,34 +43,36 @@ export async function runSimulation(roiTargets: number[], aov: number): Promise<
         contextualPCVR = pCVRResponse.adjustedPCVR;
     }
 
-    // 2. pCVR Variation for simulation is now handled inside getAdjustedPCVR
+    // 2. pCVR is now determined by the server action
     const simulatedPCVR = contextualPCVR;
     
-    // 3. Calculate Bid
-    // Target ROI is a multiplier
+    // 3. Calculate Bid based on target ROI
     const bid = simulatedPCVR * (aov / targetROI);
 
-    // 4. Simulate Clicks based on bid, competition, and time of day potential
-    let baseClicksPerHour;
-    if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
-        baseClicksPerHour = HIGH_CLICKS_PER_HOUR;
+    // 4. Simulate Clicks with improved logic
+    let clickAttainmentFactor;
+    if (bid <= 0.1) { // Very low, non-competitive bids
+        clickAttainmentFactor = 0.05; // Gets only 5% of potential clicks
     } else if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
-        baseClicksPerHour = LOW_CLICKS_PER_HOUR;
+        // Rapidly ramps up from the floor
+        const bidPosition = (bid - 0.1) / (COMPITOR_LOW_BID_THRESHOLD - 0.1);
+        clickAttainmentFactor = 0.05 + bidPosition * 0.45; // Ramps from 5% to 50%
+    } else if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
+        clickAttainmentFactor = 1.0; // Max clicks
     } else {
-        // Linear interpolation for bids between the low and high thresholds
+        // Linear scaling in the competitive range
         const bidRange = COMPETITOR_HIGH_BID_THRESHOLD - COMPETITOR_LOW_BID_THRESHOLD;
-        const clickRange = HIGH_CLICKS_PER_HOUR - LOW_CLICKS_PER_HOUR;
         const bidPosition = (bid - COMPETITOR_LOW_BID_THRESHOLD) / bidRange;
-        baseClicksPerHour = LOW_CLICKS_PER_HOUR + (bidPosition * clickRange);
+        clickAttainmentFactor = 0.5 + bidPosition * 0.5; // Ramps from 50% to 100%
     }
     
-    // Adjust clicks based on the time window's potential
-    const clicksPerHour = baseClicksPerHour * clickPotentialByWindow[i];
-    const totalClicks = clicksPerHour * HOURS_PER_WINDOW * randomInRange(0.9, 1.1);
-
+    // Max possible clicks in this window is HIGH_CLICKS_PER_HOUR adjusted for time of day
+    const maxWindowClicks = HIGH_CLICKS_PER_HOUR * clickPotentialByWindow[i];
+    const clicksPerHour = maxWindowClicks * clickAttainmentFactor;
+    const totalClicks = clicksPerHour * HOURS_PER_WINDOW * randomInRange(0.95, 1.05);
 
     // 5. Simulate Orders
-    const actualCVR = simulatedPCVR * randomInRange(0.8, 1.2);
+    const actualCVR = simulatedPCVR * randomInRange(0.85, 1.15); // Tighter randomness
     const totalOrders = totalClicks * actualCVR;
 
     // 6. Calculate Final Metrics for the window
