@@ -2,7 +2,6 @@ import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult } from "./types";
 
 // --- Core Input Parameters (Fixed Assumptions) ---
-const AVG_AOV = 500; // ₹500
 const COMPETITOR_HIGH_BID_THRESHOLD = 2.00; // ₹2.00
 const COMPETITOR_LOW_BID_THRESHOLD = 0.80; // ₹0.80
 const LOW_CLICKS_PER_HOUR = 50;
@@ -14,7 +13,7 @@ const HOURS_PER_WINDOW = 6;
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
 // --- Main Simulation Function ---
-export async function runSimulation(roiTargets: number[]): Promise<SimulationResults | {error: string, windows: SimulationWindowResult[], summary: any}> {
+export async function runSimulation(roiTargets: number[], aov: number): Promise<SimulationResults | {error: string, windows: SimulationWindowResult[], summary: any}> {
   const windowResults: SimulationWindowResult[] = [];
   
   const windowNames = ["0-6h", "6-12h", "12-18h", "18-24h"];
@@ -24,9 +23,9 @@ export async function runSimulation(roiTargets: number[]): Promise<SimulationRes
   for (let i = 0; i < roiTargets.length; i++) {
     const targetROI = roiTargets[i];
     
-    // 1. Get Contextual pCVR 
-    const pCVRResponse = await getAdjustedPCVR(targetROI);
-    let contextualPCVR = 0.01; // Base pCVR
+    // 1. Get Contextual pCVR based on Target ROI and AOV
+    const pCVRResponse = await getAdjustedPCVR(targetROI, aov);
+    let contextualPCVR: number;
     if ('error' in pCVRResponse) {
         hasError = true;
         console.warn(pCVRResponse.error);
@@ -41,7 +40,7 @@ export async function runSimulation(roiTargets: number[]): Promise<SimulationRes
     
     // 3. Calculate Bid
     // Target ROI is a multiplier
-    const bid = simulatedPCVR * (AVG_AOV / targetROI);
+    const bid = simulatedPCVR * (aov / targetROI);
 
     // 4. Simulate Clicks
     let clicksPerHour;
@@ -60,7 +59,7 @@ export async function runSimulation(roiTargets: number[]): Promise<SimulationRes
 
     // 6. Calculate Final Metrics for the window
     const totalSpend = totalClicks * bid;
-    const totalRevenue = totalOrders * AVG_AOV;
+    const totalRevenue = totalOrders * aov;
     const deliveredROI = totalSpend > 0 ? (totalRevenue / totalSpend) : 0;
     
     windowResults.push({

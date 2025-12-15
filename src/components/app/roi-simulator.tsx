@@ -10,7 +10,7 @@ import ROIInputForm, { formSchema, type ROIFormValues } from './roi-input-form';
 import ResultsTable from './results-table';
 import SummaryCard from './summary-card';
 import { Card, CardContent } from '@/components/ui/card';
-import { BarChart, Clock, Droplets, Info } from 'lucide-react';
+import { BarChart, Clock, Droplets, Info, IndianRupee } from 'lucide-react';
 
 export default function ROISimulator() {
   const [results, setResults] = useState<SimulationResults | null>(null);
@@ -20,6 +20,7 @@ export default function ROISimulator() {
   const form = useForm<ROIFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      aov: 300,
       roi1: 4,
       roi2: 8,
       roi3: 3,
@@ -32,7 +33,7 @@ export default function ROISimulator() {
     setResults(null);
 
     const roiTargets = [data.roi1, data.roi2, data.roi3, data.roi4];
-    const simulationResult = await runSimulation(roiTargets);
+    const simulationResult = await runSimulation(roiTargets, data.aov);
 
     if ('error' in simulationResult) {
        toast({
@@ -60,12 +61,16 @@ export default function ROISimulator() {
                 <h3 className="font-semibold text-lg mb-4 text-primary">How it Works</h3>
                 <ul className="space-y-4 text-sm text-muted-foreground">
                     <li className="flex gap-3">
+                        <IndianRupee className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                        <span>Set your Average Order Value (AOV). A higher AOV may lead to a lower conversion rate.</span>
+                    </li>
+                    <li className="flex gap-3">
                         <Clock className="w-5 h-5 text-accent shrink-0 mt-0.5" />
                         <span>Input four ROI targets for consecutive 6-hour windows.</span>
                     </li>
                     <li className="flex gap-3">
                         <Droplets className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span>The simulation adjusts conversion rates based on your targets, simulating real-world auction dynamics.</span>
+                        <span>The simulation adjusts conversion rates based on your targets and AOV.</span>
                     </li>
                     <li className="flex gap-3">
                         <BarChart className="w-5 h-5 text-accent shrink-0 mt-0.5" />
@@ -99,7 +104,7 @@ export default function ROISimulator() {
                 <div className="text-center text-muted-foreground p-8">
                     <BarChart className="mx-auto h-12 w-12 mb-4" />
                     <h3 className="text-lg font-semibold">Ready to simulate?</h3>
-                    <p>Enter your ROI targets and click "Run Simulation" to see your projected results.</p>
+                    <p>Enter your AOV and ROI targets and click "Run Simulation" to see your projected results.</p>
                 </div>
             </div>
         )}
