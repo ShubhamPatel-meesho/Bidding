@@ -30,6 +30,7 @@ export default function ROISimulator() {
       name: `Strategy #${leaderboard.length + 1}`,
       aov: 300,
       budget: 300,
+      sellerRoi: 10,
       roi1: 15,
       roi2: 15,
       roi3: 15,
@@ -41,7 +42,7 @@ export default function ROISimulator() {
     setIsLoading(true);
     setResults(null);
     setFailureReason(null);
-    const SELLER_ROI_TARGET = 5;
+    const SELLER_ROI_TARGET = data.sellerRoi;
 
     const roiTargets = [data.roi1, data.roi2, data.roi3, data.roi4];
     const simulationResult = await runSimulation(roiTargets, data.aov, data.budget);
@@ -80,7 +81,8 @@ export default function ROISimulator() {
         budgetUtilisation: summary.budgetUtilisation,
         roiTargets: roiTargets,
         aov: data.aov,
-        budget: data.budget
+        budget: data.budget,
+        sellerRoi: data.sellerRoi,
       };
       setLeaderboard([newEntry, ...leaderboard].sort((a,b) => b.finalDeliveredROI - a.finalDeliveredROI).slice(0, 10));
       toast({
@@ -97,6 +99,7 @@ export default function ROISimulator() {
     form.setValue('name', entry.name);
     form.setValue('aov', entry.aov);
     form.setValue('budget', entry.budget);
+    form.setValue('sellerRoi', entry.sellerRoi);
     form.setValue('roi1', entry.roiTargets[0]);
     form.setValue('roi2', entry.roiTargets[1]);
     form.setValue('roi3', entry.roiTargets[2]);

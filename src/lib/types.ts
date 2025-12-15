@@ -35,4 +35,5 @@ export type LeaderboardEntry = {
   roiTargets: number[];
   aov: number;
   budget: number;
+  sellerRoi: number;
 };

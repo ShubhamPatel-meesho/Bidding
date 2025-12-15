@@ -6,12 +6,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Trophy } from 'lucide-react';
+import { Sparkles, IndianRupee, Trophy, Target } from 'lucide-react';
 
 export const formSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   aov: z.coerce.number().positive({ message: "Must be positive" }),
   budget: z.coerce.number().positive({ message: "Must be positive" }),
+  sellerRoi: z.coerce.number().positive({ message: "Must be positive" }),
   roi1: z.coerce.number().positive({ message: "Must be positive" }),
   roi2: z.coerce.number().positive({ message: "Must be positive" }),
   roi3: z.coerce.number().positive({ message: "Must be positive" }),
@@ -32,13 +33,9 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle>Define Simulation Parameters</CardTitle>
-        <CardDescription>Enter your Average Order Value (AOV), budget, and target ROI for each 6-hour window.</CardDescription>
+        <CardDescription>Enter your AOV, budget, and target ROI for each 6-hour window.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-6 p-4 bg-secondary rounded-lg text-center">
-            <h4 className="text-sm font-medium text-secondary-foreground">Seller-Asked ROI (Guideline)</h4>
-            <p className="text-2xl font-bold text-primary">5x</p>
-        </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -91,6 +88,24 @@ export default function ROIInputForm({ form, onSubmit, isLoading }: ROIInputForm
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="sellerRoi"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Seller-Asked ROI (Benchmark)</FormLabel>
+                  <FormControl>
+                      <div className="relative">
+                          <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input type="number" placeholder="10" {...field} className="pl-8" />
+                      </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
