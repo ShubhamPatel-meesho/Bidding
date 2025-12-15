@@ -4,10 +4,19 @@ import type { SimulationResults, SimulationWindowResult } from "./types";
 // --- Core Input Parameters (Fixed Assumptions) ---
 const COMPETITOR_HIGH_BID_THRESHOLD = 2.00; // ₹2.00
 const COMPETITOR_LOW_BID_THRESHOLD = 0.80; // ₹0.80
-const LOW_CLICKS_PER_HOUR = 50;
-const MEDIUM_CLICKS_PER_HOUR = 100;
-const HIGH_CLICKS_PER_HOUR = 200;
+const LOW_CLICKS_PER_HOUR = 80; // Based on chart, early morning
+const MEDIUM_CLICKS_PER_HOUR = 120; // Based on chart, evening
+const HIGH_CLICKS_PER_HOUR = 200; // Based on chart, daytime peak
 const HOURS_PER_WINDOW = 6;
+
+// --- Time-based click potential based on the provided chart ---
+// Approximating the trend from the chart for each 6-hour window
+const clickPotentialByWindow = [
+  0.4, // 0-6h: Lower traffic
+  1.0, // 6-12h: Ramping up to peak
+  0.9, // 12-18h: High traffic, slight dip
+  0.7, // 18-24h: Dropping off
+];
 
 // --- Helper Functions ---
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -42,16 +51,24 @@ export async function runSimulation(roiTargets: number[], aov: number): Promise<
     // Target ROI is a multiplier
     const bid = simulatedPCVR * (aov / targetROI);
 
-    // 4. Simulate Clicks
-    let clicksPerHour;
+    // 4. Simulate Clicks based on bid, competition, and time of day potential
+    let baseClicksPerHour;
     if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
-      clicksPerHour = LOW_CLICKS_PER_HOUR;
+        baseClicksPerHour = HIGH_CLICKS_PER_HOUR;
     } else if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
-      clicksPerHour = HIGH_CLICKS_PER_HOUR;
+        baseClicksPerHour = LOW_CLICKS_PER_HOUR;
     } else {
-      clicksPerHour = MEDIUM_CLICKS_PER_HOUR;
+        // Linear interpolation for bids between the low and high thresholds
+        const bidRange = COMPETITOR_HIGH_BID_THRESHOLD - COMPETITOR_LOW_BID_THRESHOLD;
+        const clickRange = HIGH_CLICKS_PER_HOUR - LOW_CLICKS_PER_HOUR;
+        const bidPosition = (bid - COMPETITOR_LOW_BID_THRESHOLD) / bidRange;
+        baseClicksPerHour = LOW_CLICKS_PER_HOUR + (bidPosition * clickRange);
     }
-    const totalClicks = clicksPerHour * HOURS_PER_WINDOW;
+    
+    // Adjust clicks based on the time window's potential
+    const clicksPerHour = baseClicksPerHour * clickPotentialByWindow[i];
+    const totalClicks = clicksPerHour * HOURS_PER_WINDOW * randomInRange(0.9, 1.1);
+
 
     // 5. Simulate Orders
     const actualCVR = simulatedPCVR * randomInRange(0.8, 1.2);
