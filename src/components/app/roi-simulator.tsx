@@ -112,9 +112,13 @@ export default function ROISimulator() {
   const onSubmit: SubmitHandler<ROIFormValues> = async (data) => {
     setIsLoading(true);
     setResults(null);
+    const SELLER_ROI_TARGET = 5;
 
     const roiTargets = [data.roi1, data.roi2, data.roi3, data.roi4];
     const simulationResult = await runSimulation(roiTargets, data.aov, data.budget);
+    
+    // Always set results to show the data, even if it "failed"
+    setResults(simulationResult);
 
     if ('error' in simulationResult) {
        toast({
@@ -122,11 +126,30 @@ export default function ROISimulator() {
         title: "Simulation Warning",
         description: simulationResult.error,
       });
-      if ('windows' in simulationResult) {
-          setResults({ windows: simulationResult.windows, summary: simulationResult.summary });
-      }
-    } else {
-      setResults(simulationResult);
+    }
+
+    // --- Failure Condition Checks ---
+    const { summary } = simulationResult;
+    let failed = false;
+    let failureReason = "";
+
+    if (summary.spentAllBudget) {
+      failed = true;
+      failureReason = "Budget was exhausted before the end of the day.";
+    } else if (summary.budgetUtilisation < 0.8) {
+      failed = true;
+      failureReason = `Budget utilization (${(summary.budgetUtilisation * 100).toFixed(1)}%) is below 80%.`;
+    } else if (summary.finalDeliveredROI < SELLER_ROI_TARGET) {
+      failed = true;
+      failureReason = `Delivered ROI (${summary.finalDeliveredROI.toFixed(2)}x) is less than the Seller-Asked ROI (${SELLER_ROI_TARGET}x).`;
+    }
+
+    if (failed) {
+      toast({
+        variant: "destructive",
+        title: "Simulation Failed",
+        description: failureReason,
+      });
     }
     
     setIsLoading(false);
