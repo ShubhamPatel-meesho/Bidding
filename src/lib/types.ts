@@ -7,6 +7,8 @@ export type SimulationWindowResult = {
   totalSpend: number;
   totalRevenue: number;
   deliveredROI: number;
+  avgPCVR: number;
+  ordersToClicksRatio: number;
 };
 
 export type SimulationSummary = {

@@ -72,6 +72,8 @@ export async function runSimulation(roiTargets: number[]): Promise<SimulationRes
       totalSpend,
       totalRevenue,
       deliveredROI,
+      avgPCVR: contextualPCVR,
+      ordersToClicksRatio: totalClicks > 0 ? (totalOrders / totalClicks) : 0,
     });
   }
 

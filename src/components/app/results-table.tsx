@@ -15,6 +15,8 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
+const formatPercentage = (value: number) => `${(value * 100).toFixed(2)}%`;
+
 export default function ResultsTable({ results }: ResultsTableProps) {
   const headers = [
     'Metric',
@@ -24,8 +26,10 @@ export default function ResultsTable({ results }: ResultsTableProps) {
   const rows = [
     { label: 'Input ROI Target', key: 'targetROI', format: (v: number) => `${v}x` },
     { label: 'Avg. Calculated Bid', key: 'avgBid', format: formatCurrency },
+    { label: 'Avg. pCVR', key: 'avgPCVR', format: formatPercentage },
     { label: 'Total Clicks', key: 'totalClicks', format: (v: number) => v.toLocaleString() },
     { label: 'Total Orders', key: 'totalOrders', format: (v: number) => v.toLocaleString() },
+    { label: 'Orders/Clicks', key: 'ordersToClicksRatio', format: formatPercentage },
     { label: 'Total Ad Spend', key: 'totalSpend', format: formatCurrency },
     { label: 'Total Revenue', key: 'totalRevenue', format: formatCurrency },
     { label: 'Delivered ROI', key: 'deliveredROI', format: (v: number) => `${v.toFixed(2)}x`, isHighlight: true },
