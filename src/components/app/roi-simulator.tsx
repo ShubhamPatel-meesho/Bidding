@@ -9,12 +9,10 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 import { runSimulation } from '@/lib/simulation';
 import type { SimulationResults, LeaderboardEntry } from '@/lib/types';
 import ROIInputForm, { formSchema, type ROIFormValues } from './roi-input-form';
-import ResultsTable from './results-table';
 import SummaryCard from './summary-card';
 import Leaderboard from './leaderboard';
 import { BarChart, Sparkles } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ResultsChart from './results-chart';
 
 
 export default function ROISimulator() {
@@ -143,8 +141,6 @@ export default function ROISimulator() {
             {results && !isLoading && (
               <div className="flex flex-col gap-8 animate-in fade-in duration-500">
                 <SummaryCard summary={results.summary} failureReason={failureReason} />
-                <ResultsChart results={results.windows} />
-                <ResultsTable results={results.windows} />
               </div>
             )}
              {!isLoading && !results && (
