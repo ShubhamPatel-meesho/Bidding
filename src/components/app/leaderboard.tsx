@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Trophy, Repeat, Trash2 } from 'lucide-react';
+import { Trophy, Repeat, Trash2, ShoppingCart } from 'lucide-react';
 import type { LeaderboardEntry } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -63,6 +63,7 @@ export default function Leaderboard({
               <TableHead>Rank</TableHead>
               <TableHead>Name</TableHead>
               <TableHead className="text-right">Final ROI</TableHead>
+              <TableHead className="text-right">Orders</TableHead>
               <TableHead className="text-right">Budget Use</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -91,6 +92,9 @@ export default function Leaderboard({
                 <TableCell>{entry.name}</TableCell>
                 <TableCell className="text-right font-semibold tabular-nums">
                   {formatROI(entry.finalDeliveredROI)}
+                </TableCell>
+                 <TableCell className="text-right tabular-nums">
+                  {entry.totalOrders?.toLocaleString() ?? 'N/A'}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPercentage(entry.budgetUtilisation)}

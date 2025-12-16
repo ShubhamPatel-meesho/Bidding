@@ -32,8 +32,18 @@ export type LeaderboardEntry = {
   name: string;
   finalDeliveredROI: number;
   budgetUtilisation: number;
+  totalOrders: number;
   roiTargets: number[];
   aov: number;
   budget: number;
   sellerRoi: number;
+};
+
+export type OptimizationIteration = {
+  iteration: number;
+  roiTargets: number[];
+  budgetUtilization: number;
+  deliveredROI: number;
+  score: number;
+  isBest: boolean;
 };
