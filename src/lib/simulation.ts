@@ -13,17 +13,14 @@ const INTERVALS_PER_HOUR = 2; // 30-minute intervals
 const clickPotentialByWindow = [0.4, 1.0, 0.9, 0.7]; // Corresponds to 0-6h, 6-12h, 12-18h, 18-24h
 
 // --- Time-based click potential based on the provided chart ---
-// This is now per 30-minute interval
-const clickPotentialByInterval = [
-  // 0-6h (12 intervals)
-  0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4,
-  // 6-12h (12 intervals)
-  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-  // 12-18h (12 intervals)
-  0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
-  // 18-24h (12 intervals)
-  0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7
-];
+// This is now per 30-minute interval within a day (48 intervals)
+const clickPotentialByInterval = Array.from({ length: 48 }, (_, i) => {
+    const hour = Math.floor(i / INTERVALS_PER_HOUR);
+    if (hour < 6) return 0.4;
+    if (hour < 12) return 1.0;
+    if (hour < 18) return 0.9;
+    return 0.7;
+});
 
 
 // --- Helper Functions ---
@@ -65,45 +62,37 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
     if (remainingBudget > 0 && bid >= BID_THROTTLE_THRESHOLD) {
         let clickAttainmentFactor;
         
-        // This logic creates a non-linear curve for click attainment.
         if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
-            // Lower-end bids (from throttle to low_threshold) - sharp penalty for being uncompetitive
             const position = (bid - BID_THROTTLE_THRESHOLD) / (COMPETITOR_LOW_BID_THRESHOLD - BID_THROTTLE_THRESHOLD);
-            clickAttainmentFactor = Math.pow(position, 2) * 0.5; // Starts at 0, curves up to 50%
+            clickAttainmentFactor = Math.pow(position, 2) * 0.5;
         } else if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
-            // Bids above the high threshold get max clicks
             clickAttainmentFactor = 1.0; 
         } else {
-            // Competitive range (between low and high thresholds) - linear scaling
             const bidRange = COMPETITOR_HIGH_BID_THRESHOLD - COMPETITOR_LOW_BID_THRESHOLD;
             const bidPosition = (bid - COMPETITOR_LOW_BID_THRESHOLD) / bidRange;
-            clickAttainmentFactor = 0.5 + bidPosition * 0.5; // Ramps from 50% to 100%
+            clickAttainmentFactor = 0.5 + bidPosition * 0.5;
         }
         
-        // Max possible clicks in this window is HIGH_CLICKS_PER_HOUR adjusted for time of day
         const maxWindowClicks = HIGH_CLICKS_PER_HOUR * clickPotentialByWindow[i];
         const potentialClicksPerHour = maxWindowClicks * clickAttainmentFactor;
         const potentialWindowClicks = potentialClicksPerHour * HOURS_PER_WINDOW * randomInRange(0.95, 1.05);
 
-        // Determine clicks based on budget
         const affordableClicks = remainingBudget / bid;
         totalClicks = Math.min(potentialWindowClicks, affordableClicks);
 
         if (totalClicks >= affordableClicks && i < roiTargets.length -1) {
           spentAllBudget = true;
         }
-
     }
 
-
     // 5. Simulate Orders
-    const actualCVR = simulatedPCVR * randomInRange(0.85, 1.15); // Tighter randomness
+    const actualCVR = simulatedPCVR * randomInRange(0.85, 1.15);
     const fractionalOrders = totalClicks * actualCVR;
     const totalOrders = Math.floor(fractionalOrders);
 
     // 6. Calculate Final Metrics for the window
     const totalSpend = totalClicks * bid;
-    remainingBudget -= totalSpend; // Decrease remaining budget
+    remainingBudget -= totalSpend;
     if(remainingBudget < 0) remainingBudget = 0;
 
     const totalRevenue = totalOrders * aov;
@@ -153,13 +142,13 @@ const CLICKS_FOR_ROI_CALC = 3000;
 const CLICKS_FOR_ROI_UPDATE = 600;
 
 export async function runMultiDaySimulation(params: MultiDaySimulationParams): Promise<TimeIntervalResult[]> {
-  const { slRoi, initialTargetRoi, pacingP, dailyBudget, numDays } = params;
+  const { slRoi, initialTargetRoi, pacingP, dailyBudget, numDays, initialDeliveredRoi } = params;
 
   let timeSeries: TimeIntervalResult[] = [];
-  let recentHistory: { spend: number, gmv: number }[] = [];
+  let recentHistory: { spend: number, gmv: number, clicks: number }[] = [];
   let clicksSinceLastUpdate = 0;
   let currentTargetRoi = initialTargetRoi;
-  let deliveredRoi = params.initialDeliveredRoi; 
+  let deliveredRoi = initialDeliveredRoi; 
 
   const totalIntervals = numDays * 24 * INTERVALS_PER_HOUR;
   const aov = 300; // Assuming a fixed AOV for now
@@ -182,12 +171,27 @@ export async function runMultiDaySimulation(params: MultiDaySimulationParams): P
     }
 
     // --- Core Bid & Click Simulation for Interval ---
-    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, Math.floor(intervalIndexInDay / (HOURS_PER_WINDOW * INTERVALS_PER_HOUR)));
+    const windowIndex = Math.floor(hour / HOURS_PER_WINDOW);
+    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, windowIndex);
     const pCvr = intervalPCVRResponse.adjustedPCVR;
     const bid = pCvr * (aov / currentTargetRoi);
     
+    let clickAttainmentFactor = 0;
+    if (bid >= BID_THROTTLE_THRESHOLD) {
+       if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
+            const position = (bid - BID_THROTTLE_THRESHOLD) / (COMPETITOR_LOW_BID_THRESHOLD - BID_THROTTLE_THRESHOLD);
+            clickAttainmentFactor = Math.pow(position, 2) * 0.5;
+        } else if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
+            clickAttainmentFactor = 1.0; 
+        } else {
+            const bidRange = COMPETITOR_HIGH_BID_THRESHOLD - COMPETITOR_LOW_BID_THRESHOLD;
+            const bidPosition = (bid - COMPETITOR_LOW_BID_THRESHOLD) / bidRange;
+            clickAttainmentFactor = 0.5 + bidPosition * 0.5;
+        }
+    }
+    
     const clickPotential = clickPotentialByInterval[intervalIndexInDay] / INTERVALS_PER_HOUR;
-    const maxIntervalClicks = HIGH_CLICKS_PER_HOUR * clickPotential * randomInRange(0.9, 1.1);
+    const maxIntervalClicks = HIGH_CLICKS_PER_HOUR * clickPotential * randomInRange(0.9, 1.1) * clickAttainmentFactor;
 
     const affordableClicks = (bid > 0) ? remainingDailyBudget / bid : 0;
     const clicks = Math.max(0, Math.min(maxIntervalClicks, affordableClicks));
@@ -198,12 +202,29 @@ export async function runMultiDaySimulation(params: MultiDaySimulationParams): P
     
     // --- Update history for Delivered ROI calculation ---
     if (clicks > 0) {
-      recentHistory.push({ spend, gmv });
+      recentHistory.push({ spend, gmv, clicks });
     }
-    while(recentHistory.reduce((sum, h) => sum + h.spend, 0) > CLICKS_FOR_ROI_CALC * bid) { // Approx. last 3k clicks
-        if(recentHistory.length <= 1) break;
-        recentHistory.shift();
+
+    let rollingClicks = 0;
+    let historyToKeep: { spend: number; gmv: number; clicks: number }[] = [];
+    for(let j = recentHistory.length - 1; j >= 0; j--) {
+        const hist = recentHistory[j];
+        if (rollingClicks + hist.clicks <= CLICKS_FOR_ROI_CALC) {
+            rollingClicks += hist.clicks;
+            historyToKeep.unshift(hist);
+        } else {
+            const fractionToKeep = (CLICKS_FOR_ROI_CALC - rollingClicks) / hist.clicks;
+            historyToKeep.unshift({
+                spend: hist.spend * fractionToKeep,
+                gmv: hist.gmv * fractionToKeep,
+                clicks: hist.clicks * fractionToKeep,
+            });
+            rollingClicks = CLICKS_FOR_ROI_CALC;
+            break;
+        }
     }
+    recentHistory = historyToKeep;
+
     const totalHistorySpend = recentHistory.reduce((s, h) => s + h.spend, 0);
     const totalHistoryGmv = recentHistory.reduce((s, h) => s + h.gmv, 0);
 
@@ -213,10 +234,12 @@ export async function runMultiDaySimulation(params: MultiDaySimulationParams): P
     
     clicksSinceLastUpdate += clicks;
 
-    const dayROI = (dailySpend + spend > 0) ? (dayData.reduce((s, d) => s + d.gmv, 0) + gmv) / (dailySpend + spend) : 0;
+    const dayGmv = dayData.reduce((s, d) => s + d.gmv, 0) + gmv;
+    const daySpend = dailySpend + spend;
+    const dayROI = daySpend > 0 ? dayGmv / daySpend : 0;
     
     timeSeries.push({
-      timestamp: i,
+      timestamp: intervalIndexInDay,
       day: day,
       hour: hour,
       label: `D${day} H${hour}`,

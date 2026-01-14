@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Target, Percent, Cog } from 'lucide-react';
+import { Sparkles, IndianRupee, Target, Percent, Cog, MousePointerClick } from 'lucide-react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import type { TimeIntervalResult } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
@@ -105,7 +105,7 @@ export default function MultiDaySimulator() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                     <FormField
                       control={form.control} name="slRoi"
                       render={({ field }) => (
@@ -146,7 +146,17 @@ export default function MultiDaySimulator() {
                         </FormItem>
                       )}
                     />
-                    <Card className="col-span-full lg:col-span-2">
+                    <FormField
+                      control={form.control} name="initialDeliveredRoi"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Starting Delivered ROI</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Card className="col-span-full lg:col-span-3">
                         <CardContent className="pt-6">
                              <div className="grid grid-cols-3 gap-4">
                                 <FormField
@@ -219,12 +229,13 @@ export default function MultiDaySimulator() {
                                     dataKey="timestamp" 
                                     tickFormatter={(ts, index) => (index % 48 === 0) ? `Day ${Math.floor(index/48)+1}` : ''}
                                     tickLine={false}
+                                    label={{ value: 'Interval (30 mins)', position: 'insideBottom', offset: -5 }}
                                 />
                                 <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--primary))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
                                 <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" label={{ value: 'GMV / Clicks', angle: 90, position: 'insideRight' }} />
                                 <Tooltip 
                                     contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))' }}
-                                    labelFormatter={(label) => `Interval ${label}`}
+                                    labelFormatter={(label, payload) => `Day ${payload?.[0]?.payload.day}, Interval ${label}`}
                                 />
                                 <Legend />
                                 <Area yAxisId="right" type="monotone" dataKey="gmv" name="Catalog GMV" fill="hsl(var(--chart-2) / 0.2)" stroke="hsl(var(--chart-2) / 0.5)" dot={false} />
@@ -249,6 +260,7 @@ export default function MultiDaySimulator() {
                                 <TableHead>Day</TableHead>
                                 <TableHead className="text-right">Delivered ROI</TableHead>
                                 <TableHead className="text-right">Orders</TableHead>
+                                <TableHead className="text-right">Clicks</TableHead>
                                 <TableHead className="text-right">Spends</TableHead>
                                 <TableHead className="text-right">Budget</TableHead>
                                 <TableHead className="text-right">Budget Utilisation</TableHead>
@@ -263,6 +275,7 @@ export default function MultiDaySimulator() {
                                         <TableCell>Day {day.day}</TableCell>
                                         <TableCell className="text-right">{formatRoi(deliveredROI)}</TableCell>
                                         <TableCell className="text-right">{day.orders}</TableCell>
+                                        <TableCell className="text-right">{day.clicks.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.spend)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(form.getValues('dailyBudget'))}</TableCell>
                                         <TableCell className="text-right">{formatPercent(budgetUtilisation)}</TableCell>
