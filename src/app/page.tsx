@@ -4,6 +4,7 @@
 import Header from '@/components/app/header';
 import ROISimulator from '@/components/app/roi-simulator';
 import Leaderboard from '@/components/app/leaderboard';
+import MultiDaySimulator from '@/components/app/multi-day-simulator';
 import { Sidebar, SidebarProvider, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarFooter } from '@/components/ui/sidebar';
 import { useState } from 'react';
 import { LayoutGrid, BarChart, Trophy } from 'lucide-react';
@@ -54,15 +55,7 @@ export default function Home() {
       case 'leaderboard':
         return <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect} onDelete={handleLeaderboardDelete} />;
       case 'catalog':
-        return (
-           <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
-              <div className="text-center text-muted-foreground p-8">
-                  <LayoutGrid className="mx-auto h-12 w-12 mb-4" />
-                  <h3 className="text-lg font-semibold">Multi day simulator</h3>
-                  <p>This space is reserved for future multi-day simulation features.</p>
-              </div>
-          </div>
-        );
+        return <MultiDaySimulator />;
       default:
         return <ROISimulator 
                   setLeaderboard={setLeaderboard} 
