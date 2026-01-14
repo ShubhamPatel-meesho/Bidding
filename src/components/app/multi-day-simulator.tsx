@@ -32,7 +32,7 @@ const formSchema = z.object({
   dailyBudget: z.coerce.number().positive({ message: "Must be positive" }),
   aov: z.coerce.number().positive({ message: "AOV must be positive" }),
   basePCVR: z.coerce.number().min(0, { message: "Must be non-negative" }),
-  calibrationError: z.coerce.number().min(0).max(1, { message: "Must be between 0 and 1" }),
+  calibrationError: z.coerce.number().min(0).max(100, { message: "Must be between 0 and 100" }),
   pacingP: z.coerce.number().min(0),
   pacingI: z.coerce.number().min(0),
   pacingD: z.coerce.number().min(0),
@@ -88,8 +88,8 @@ export default function MultiDaySimulator() {
       initialDeliveredRoi: 20,
       dailyBudget: 300,
       aov: 300,
-      basePCVR: 0.01,
-      calibrationError: 0.2,
+      basePCVR: 1, // 1%
+      calibrationError: 20, // 20%
       pacingP: 0.2,
       pacingI: 0,
       pacingD: 0,
@@ -111,6 +111,8 @@ export default function MultiDaySimulator() {
     setTimeout(async () => {
       const simulationResults = await runMultiDaySimulation({
           ...data,
+          basePCVR: data.basePCVR / 100, // Convert from % to decimal
+          calibrationError: data.calibrationError / 100, // Convert from % to decimal
           numDays: 3,
       }, onProgress);
       
@@ -218,7 +220,7 @@ export default function MultiDaySimulator() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center gap-1">Base pCVR</FormLabel>
-                                <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.001" {...field} className="pl-8" /></div></FormControl>
+                                <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" {...field} className="pl-8" /></div></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -228,7 +230,7 @@ export default function MultiDaySimulator() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center gap-1">Calib. Error</FormLabel>
-                                <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" {...field} className="pl-8" /></div></FormControl>
+                                <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="1" {...field} className="pl-8" /></div></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -410,3 +412,5 @@ export default function MultiDaySimulator() {
     </div>
   );
 }
+
+    
