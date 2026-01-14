@@ -47,3 +47,28 @@ export type OptimizationIteration = {
   score: number;
   isBest: boolean;
 };
+
+export type MultiDaySimulationParams = {
+  slRoi: number;
+  initialTargetRoi: number;
+  initialDeliveredRoi: number;
+  dailyBudget: number;
+  pacingP: number;
+  pacingI: number;
+  pacingD: number;
+  numDays: number;
+};
+
+export type TimeIntervalResult = {
+  timestamp: number;
+  day: number;
+  hour: number;
+  label: string;
+  targetROI: number;
+  deliveredROI: number; // Catalog ROI
+  dayROI: number;
+  slRoi: number;
+  clicks: number;
+  gmv: number;
+  spend: number;
+};

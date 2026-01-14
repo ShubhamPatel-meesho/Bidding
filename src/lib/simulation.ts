@@ -1,5 +1,5 @@
 import { getAdjustedPCVR } from "@/app/actions";
-import type { SimulationResults, SimulationWindowResult } from "./types";
+import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
 
 // --- Core Input Parameters (Fixed Assumptions) ---
 const COMPETITOR_HIGH_BID_THRESHOLD = 2.00; // ₹2.00 - Bids above this are highly competitive
@@ -7,14 +7,21 @@ const COMPETITOR_LOW_BID_THRESHOLD = 0.80;  // ₹0.80 - Bids below this are not
 const BID_THROTTLE_THRESHOLD = 0.04; // Below this bid, clicks are 0
 const HIGH_CLICKS_PER_HOUR = 200; // Max potential clicks for a top bid at peak time
 const HOURS_PER_WINDOW = 6;
+const INTERVALS_PER_HOUR = 2; // 30-minute intervals
 
 // --- Time-based click potential based on the provided chart ---
-const clickPotentialByWindow = [
-  0.4, // 0-6h: Lower traffic
-  1.0, // 6-12h: Ramping up to peak
-  0.9, // 12-18h: High traffic, slight dip
-  0.7, // 18-24h: Dropping off,
+// This is now per 30-minute interval
+const clickPotentialByInterval = [
+  // 0-6h (12 intervals)
+  0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4,
+  // 6-12h (12 intervals)
+  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+  // 12-18h (12 intervals)
+  0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
+  // 18-24h (12 intervals)
+  0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7
 ];
+
 
 // --- Helper Functions ---
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -135,4 +142,90 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
   }
 
   return results;
+}
+
+
+// --- New Multi-Day Simulator ---
+const CLICKS_FOR_ROI_CALC = 3000;
+const CLICKS_FOR_ROI_UPDATE = 600;
+
+export async function runMultiDaySimulation(params: MultiDaySimulationParams): Promise<TimeIntervalResult[]> {
+  const { slRoi, initialTargetRoi, pacingP, dailyBudget, numDays } = params;
+
+  let timeSeries: TimeIntervalResult[] = [];
+  let recentHistory: { spend: number, gmv: number }[] = [];
+  let clicksSinceLastUpdate = 0;
+  let currentTargetRoi = initialTargetRoi;
+  let deliveredRoi = params.initialDeliveredRoi; 
+
+  const totalIntervals = numDays * 24 * INTERVALS_PER_HOUR;
+  const aov = 300; // Assuming a fixed AOV for now
+
+  for (let i = 0; i < totalIntervals; i++) {
+    const day = Math.floor(i / (24 * INTERVALS_PER_HOUR)) + 1;
+    const hour = Math.floor((i % (24 * INTERVALS_PER_HOUR)) / INTERVALS_PER_HOUR);
+    const intervalIndexInDay = i % (24 * INTERVALS_PER_HOUR);
+    
+    const dayData = timeSeries.filter(d => d.day === day);
+    const dailySpend = dayData.reduce((sum, d) => sum + d.spend, 0);
+    const remainingDailyBudget = dailyBudget - dailySpend;
+
+    // --- PID Controller Logic ---
+    if (clicksSinceLastUpdate >= CLICKS_FOR_ROI_UPDATE) {
+      const error = (slRoi - deliveredRoi) / deliveredRoi;
+      const adjustment = 1 + (pacingP * error);
+      currentTargetRoi = currentTargetRoi * adjustment;
+      clicksSinceLastUpdate = 0; // Reset counter
+    }
+
+    // --- Core Bid & Click Simulation for Interval ---
+    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, Math.floor(intervalIndexInDay / (HOURS_PER_WINDOW * INTERVALS_PER_HOUR)));
+    const pCvr = intervalPCVRResponse.adjustedPCVR;
+    const bid = pCvr * (aov / currentTargetRoi);
+    
+    const clickPotential = clickPotentialByInterval[intervalIndexInDay] / INTERVALS_PER_HOUR;
+    const maxIntervalClicks = HIGH_CLICKS_PER_HOUR * clickPotential * randomInRange(0.9, 1.1);
+
+    const affordableClicks = (bid > 0) ? remainingDailyBudget / bid : 0;
+    const clicks = Math.max(0, Math.min(maxIntervalClicks, affordableClicks));
+
+    const spend = clicks * bid;
+    const orders = Math.floor(clicks * pCvr * randomInRange(0.9, 1.1));
+    const gmv = orders * aov;
+    
+    // --- Update history for Delivered ROI calculation ---
+    if (clicks > 0) {
+      recentHistory.push({ spend, gmv });
+    }
+    while(recentHistory.reduce((sum, h) => sum + h.spend, 0) > CLICKS_FOR_ROI_CALC * bid) { // Approx. last 3k clicks
+        if(recentHistory.length <= 1) break;
+        recentHistory.shift();
+    }
+    const totalHistorySpend = recentHistory.reduce((s, h) => s + h.spend, 0);
+    const totalHistoryGmv = recentHistory.reduce((s, h) => s + h.gmv, 0);
+
+    if (totalHistorySpend > 0) {
+        deliveredRoi = totalHistoryGmv / totalHistorySpend;
+    }
+    
+    clicksSinceLastUpdate += clicks;
+
+    const dayROI = (dailySpend + spend > 0) ? (dayData.reduce((s, d) => s + d.gmv, 0) + gmv) / (dailySpend + spend) : 0;
+    
+    timeSeries.push({
+      timestamp: i,
+      day: day,
+      hour: hour,
+      label: `D${day} H${hour}`,
+      targetROI: currentTargetRoi,
+      deliveredROI: deliveredRoi, // Catalog ROI
+      dayROI: dayROI,
+      slRoi: slRoi,
+      clicks: clicks,
+      gmv: gmv,
+      spend: spend,
+    });
+  }
+
+  return timeSeries;
 }
