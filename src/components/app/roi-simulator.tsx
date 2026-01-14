@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from "@/hooks/use-toast";
@@ -11,14 +11,16 @@ import ROIInputForm, { formSchema, type ROIFormValues } from './roi-input-form';
 import SummaryCard from './summary-card';
 import { BarChart } from 'lucide-react';
 import ResultsTable from './results-table';
+import ResultsChart from './results-chart';
 
 interface ROISimulatorProps {
     leaderboard: LeaderboardEntry[];
-    setLeaderboard: (value: LeaderboardEntry[]) => void;
+    setLeaderboard: (value: LeaderboardEntry[] | ((current: LeaderboardEntry[]) => LeaderboardEntry[])) => void;
+    selectedEntry?: LeaderboardEntry | null;
+    onEntryProcessed: () => void;
 }
 
-
-export default function ROISimulator({ leaderboard, setLeaderboard}: ROISimulatorProps) {
+export default function ROISimulator({ leaderboard, setLeaderboard, selectedEntry, onEntryProcessed }: ROISimulatorProps) {
   const [results, setResults] = useState<SimulationResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [failureReason, setFailureReason] = useState<string | null>(null);
@@ -37,6 +39,24 @@ export default function ROISimulator({ leaderboard, setLeaderboard}: ROISimulato
       roi4: 15,
     },
   });
+
+  useEffect(() => {
+    if (selectedEntry) {
+      form.setValue('name', selectedEntry.name);
+      form.setValue('aov', selectedEntry.aov);
+      form.setValue('budget', selectedEntry.budget);
+      form.setValue('sellerRoi', selectedEntry.sellerRoi);
+      form.setValue('roi1', selectedEntry.roiTargets[0]);
+      form.setValue('roi2', selectedEntry.roiTargets[1]);
+      form.setValue('roi3', selectedEntry.roiTargets[2]);
+      form.setValue('roi4', selectedEntry.roiTargets[3]);
+      
+      // Trigger validation after setting values
+      form.trigger(['aov', 'budget', 'sellerRoi']);
+      
+      onEntryProcessed();
+    }
+  }, [selectedEntry, form, onEntryProcessed]);
 
   const runAndProcessSimulation: SubmitHandler<ROIFormValues> = async (data) => {
     setIsLoading(true);
@@ -75,7 +95,6 @@ export default function ROISimulator({ leaderboard, setLeaderboard}: ROISimulato
       setFailureReason(reasons.join(' '));
       return { success: false, summary };
     } else {
-      // Success! Add to leaderboard
       const newEntry: LeaderboardEntry = {
         id: new Date().toISOString(),
         name: data.name,
@@ -87,7 +106,13 @@ export default function ROISimulator({ leaderboard, setLeaderboard}: ROISimulato
         budget: data.budget,
         sellerRoi: data.sellerRoi,
       };
-      setLeaderboard([newEntry, ...leaderboard].sort((a,b) => (b.totalOrders ?? 0) - (a.totalOrders ?? 0)).slice(0, 10));
+
+      setLeaderboard(currentLeaderboard => 
+        [newEntry, ...currentLeaderboard]
+          .sort((a, b) => (b.totalOrders ?? 0) - (a.totalOrders ?? 0))
+          .slice(0, 10)
+      );
+
       toast({
         title: "Success!",
         description: `${data.name} was added to the leaderboard.`,
@@ -113,6 +138,7 @@ export default function ROISimulator({ leaderboard, setLeaderboard}: ROISimulato
         {results && !isLoading && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">
             <SummaryCard summary={results.summary} failureReason={failureReason} />
+            <ResultsChart results={results.windows} />
             <ResultsTable results={results.windows} />
           </div>
         )}

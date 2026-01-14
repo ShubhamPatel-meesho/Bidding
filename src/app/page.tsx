@@ -4,7 +4,7 @@
 import Header from '@/components/app/header';
 import ROISimulator from '@/components/app/roi-simulator';
 import Leaderboard from '@/components/app/leaderboard';
-import { Sidebar, SidebarProvider, SidebarInset, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
+import { Sidebar, SidebarProvider, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { useState } from 'react';
 import { LayoutGrid, BarChart, Trophy } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -26,19 +26,33 @@ export default function Home() {
     });
   };
 
+  const handleLeaderboardSelect = (entry: LeaderboardEntry) => {
+    // This function will be passed to the ROISimulator, but the logic
+    // to set form values will live inside ROISimulator.
+    // For now, we just switch the view.
+    setActiveView('simulator');
+    // We'll need a way to pass the selected entry to the ROISimulator
+    // This will be handled in a future step.
+     toast({
+      title: 'Loading Strategy...',
+      description: `"${entry.name}" parameters have been loaded into the form.`,
+    });
+  };
+
+
   const renderContent = () => {
     switch (activeView) {
       case 'simulator':
         return <ROISimulator setLeaderboard={setLeaderboard} leaderboard={leaderboard} />;
       case 'leaderboard':
-        return <Leaderboard entries={leaderboard} onSelect={() => {}} onDelete={handleLeaderboardDelete} />;
+        return <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect} onDelete={handleLeaderboardDelete} />;
       case 'catalog':
         return (
            <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
               <div className="text-center text-muted-foreground p-8">
                   <LayoutGrid className="mx-auto h-12 w-12 mb-4" />
-                  <h3 className="text-lg font-semibold">Catalog Level Simulator</h3>
-                  <p>This space is reserved for future catalog-level simulation features.</p>
+                  <h3 className="text-lg font-semibold">Multi day simulator</h3>
+                  <p>This space is reserved for future multi-day simulation features.</p>
               </div>
           </div>
         );
@@ -49,13 +63,12 @@ export default function Home() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col bg-background text-foreground">
         <Sidebar side="left" variant="sidebar" collapsible="icon">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setActiveView('simulator')} isActive={activeView === 'simulator'} tooltip="Bidding Simulator">
+              <SidebarMenuButton onClick={() => setActiveView('simulator')} isActive={activeView === 'simulator'} tooltip="Single day simulator">
                 <BarChart />
-                <span>Bidding Simulator</span>
+                <span>Single day simulator</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
@@ -65,22 +78,23 @@ export default function Home() {
               </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setActiveView('catalog')} isActive={activeView === 'catalog'} tooltip="Catalog Level Simulator">
+              <SidebarMenuButton onClick={() => setActiveView('catalog')} isActive={activeView === 'catalog'} tooltip="Multi day simulator">
                 <LayoutGrid />
-                <span>Catalog Simulator</span>
+                <span>Multi day simulator</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </Sidebar>
         <SidebarInset>
-            <div className="p-4 sm:p-8 md:p-12 w-full max-w-7xl mx-auto">
-                <Header />
-                <main className="mt-8">
-                    {renderContent()}
-                </main>
+            <div className="min-h-screen flex flex-col bg-background text-foreground w-full">
+                <div className="p-4 sm:p-8 md:p-12 w-full max-w-7xl mx-auto">
+                    <Header />
+                    <main className="mt-8">
+                        {renderContent()}
+                    </main>
+                </div>
             </div>
         </SidebarInset>
-      </div>
     </SidebarProvider>
   );
 }
