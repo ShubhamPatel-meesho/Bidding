@@ -152,18 +152,20 @@ export async function runMultiDaySimulation(
   
   // --- WARM-UP PHASE ---
   // Pre-populate history to achieve the initialDeliveredRoi
-  const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 1); // Use peak time for initial guess
-  const initialPCVR = initialPCVRResponse.adjustedPCVR;
-  const initialBid = initialPCVR * (aov / initialTargetRoi);
-  const warmupSpend = CLICKS_FOR_ROI_CALC * initialBid;
-  const warmupGmv = warmupSpend * initialDeliveredRoi;
-  const warmupOrders = Math.floor(warmupGmv / aov);
-  recentHistory.push({
-    spend: warmupSpend,
-    gmv: warmupGmv,
-    clicks: CLICKS_FOR_ROI_CALC,
-    orders: warmupOrders,
-  });
+  if (initialDeliveredRoi > 0) {
+    const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 1); // Use peak time for initial guess
+    const initialPCVR = initialPCVRResponse.adjustedPCVR;
+    const initialBid = initialPCVR * (aov / initialTargetRoi);
+    const warmupSpend = CLICKS_FOR_ROI_CALC * initialBid;
+    const warmupGmv = warmupSpend * initialDeliveredRoi;
+    const warmupOrders = Math.floor(warmupGmv / aov);
+    recentHistory.push({
+      spend: warmupSpend,
+      gmv: warmupGmv,
+      clicks: CLICKS_FOR_ROI_CALC,
+      orders: warmupOrders,
+    });
+  }
   
   let clicksSinceLastUpdate = 0;
   let currentTargetRoi = initialTargetRoi;
@@ -269,8 +271,13 @@ export async function runMultiDaySimulation(
     const dayGmv = dayData.reduce((s, d) => s + d.gmv, 0) + gmv;
     const daySpend = dailySpend + spend;
     const dayROI = daySpend > 0 ? dayGmv / daySpend : 0;
-    const dayCumulativeClicks = dayData.reduce((s, d) => s + d.clicks, 0) + clicks;
-    const dayCumulativeGmv = dayData.reduce((s, d) => s + d.dayCumulativeGmv, 0) + gmv;
+    
+    const prevDayCumulativeClicks = dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeClicks : 0;
+    const dayCumulativeClicks = prevDayCumulativeClicks + clicks;
+    
+    const prevDayCumulativeGmv = dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeGmv : 0;
+    const dayCumulativeGmv = prevDayCumulativeGmv + gmv;
+
     
     timeSeries.push({
       timestamp: intervalIndexInDay,
