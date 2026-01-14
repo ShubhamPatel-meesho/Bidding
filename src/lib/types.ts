@@ -53,6 +53,7 @@ export type MultiDaySimulationParams = {
   initialTargetRoi: number;
   initialDeliveredRoi: number;
   dailyBudget: number;
+  aov: number;
   pacingP: number;
   pacingI: number;
   pacingD: number;
@@ -69,6 +70,9 @@ export type TimeIntervalResult = {
   dayROI: number;
   slRoi: number;
   clicks: number;
+  orders: number;
   gmv: number;
   spend: number;
 };
+
+    

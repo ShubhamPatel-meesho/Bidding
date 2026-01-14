@@ -145,17 +145,18 @@ export async function runMultiDaySimulation(
     params: MultiDaySimulationParams, 
     onProgress?: (progress: number) => void
 ): Promise<TimeIntervalResult[]> {
-  const { slRoi, initialTargetRoi, pacingP, dailyBudget, numDays, initialDeliveredRoi } = params;
+  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, dailyBudget, numDays, initialDeliveredRoi, aov } = params;
 
   let timeSeries: TimeIntervalResult[] = [];
-  let recentHistory: { spend: number, gmv: number, clicks: number }[] = [];
+  let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
   let clicksSinceLastUpdate = 0;
   let currentTargetRoi = initialTargetRoi;
   let deliveredRoi = initialDeliveredRoi; 
+  let integralError = 0;
+  let previousError = 0;
 
   const totalIntervals = numDays * 24 * INTERVALS_PER_HOUR;
-  const aov = 300; // Assuming a fixed AOV for now
-
+  
   for (let i = 0; i < totalIntervals; i++) {
     const day = Math.floor(i / (24 * INTERVALS_PER_HOUR)) + 1;
     const hour = Math.floor((i % (24 * INTERVALS_PER_HOUR)) / INTERVALS_PER_HOUR);
@@ -171,10 +172,17 @@ export async function runMultiDaySimulation(
     const remainingDailyBudget = dailyBudget - dailySpend;
 
     // --- PID Controller Logic ---
-    if (clicksSinceLastUpdate >= CLICKS_FOR_ROI_UPDATE) {
-      const error = (slRoi - deliveredRoi) / deliveredRoi;
-      const adjustment = 1 + (pacingP * error);
-      currentTargetRoi = currentTargetRoi * adjustment;
+    if (clicksSinceLastUpdate >= CLICKS_FOR_ROI_UPDATE && recentHistory.length > 0) {
+      const error = (slRoi - deliveredRoi) / slRoi; // Error as a percentage of SL ROI
+      integralError += error;
+      const derivativeError = error - previousError;
+      
+      const adjustment = (pacingP * error) + (pacingI * integralError) + (pacingD * derivativeError);
+      
+      // Update target ROI based on adjustment factor
+      currentTargetRoi = currentTargetRoi * (1 + adjustment);
+      
+      previousError = error;
       clicksSinceLastUpdate = 0; // Reset counter
     }
 
@@ -185,7 +193,7 @@ export async function runMultiDaySimulation(
     const bid = pCvr * (aov / currentTargetRoi);
     
     let clickAttainmentFactor = 0;
-    if (bid >= BID_THROTTLE_THRESHOLD) {
+    if (bid >= BID_THROTTLE_THRESHOLD && remainingDailyBudget > 0) {
        if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
             const position = (bid - BID_THROTTLE_THRESHOLD) / (COMPETITOR_LOW_BID_THRESHOLD - BID_THROTTLE_THRESHOLD);
             clickAttainmentFactor = Math.pow(position, 2) * 0.5;
@@ -205,16 +213,18 @@ export async function runMultiDaySimulation(
     const clicks = Math.max(0, Math.min(maxIntervalClicks, affordableClicks));
 
     const spend = clicks * bid;
-    const orders = Math.floor(clicks * pCvr * randomInRange(0.9, 1.1));
+    const actualCVR = pCvr * randomInRange(0.9, 1.1);
+    const orders = Math.floor(clicks * actualCVR);
     const gmv = orders * aov;
     
     // --- Update history for Delivered ROI calculation ---
     if (clicks > 0) {
-      recentHistory.push({ spend, gmv, clicks });
+      recentHistory.push({ spend, gmv, clicks, orders });
+      clicksSinceLastUpdate += clicks;
     }
 
     let rollingClicks = 0;
-    let historyToKeep: { spend: number; gmv: number; clicks: number }[] = [];
+    let historyToKeep: { spend: number; gmv: number; clicks: number, orders: number }[] = [];
     for(let j = recentHistory.length - 1; j >= 0; j--) {
         const hist = recentHistory[j];
         if (rollingClicks + hist.clicks <= CLICKS_FOR_ROI_CALC) {
@@ -226,6 +236,7 @@ export async function runMultiDaySimulation(
                 spend: hist.spend * fractionToKeep,
                 gmv: hist.gmv * fractionToKeep,
                 clicks: hist.clicks * fractionToKeep,
+                orders: hist.orders * fractionToKeep,
             });
             rollingClicks = CLICKS_FOR_ROI_CALC;
             break;
@@ -240,8 +251,6 @@ export async function runMultiDaySimulation(
         deliveredRoi = totalHistoryGmv / totalHistorySpend;
     }
     
-    clicksSinceLastUpdate += clicks;
-
     const dayGmv = dayData.reduce((s, d) => s + d.gmv, 0) + gmv;
     const daySpend = dailySpend + spend;
     const dayROI = daySpend > 0 ? dayGmv / daySpend : 0;
@@ -256,6 +265,7 @@ export async function runMultiDaySimulation(
       dayROI: dayROI,
       slRoi: slRoi,
       clicks: clicks,
+      orders: orders,
       gmv: gmv,
       spend: spend,
     });

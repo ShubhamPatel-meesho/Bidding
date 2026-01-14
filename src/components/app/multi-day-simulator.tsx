@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Target, Percent, Cog, MousePointerClick } from 'lucide-react';
+import { Sparkles, IndianRupee, Target, Percent, Cog } from 'lucide-react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import type { TimeIntervalResult } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
@@ -22,6 +22,7 @@ const formSchema = z.object({
   initialTargetRoi: z.coerce.number().positive({ message: "Must be positive" }),
   initialDeliveredRoi: z.coerce.number().positive({ message: "Must be positive" }),
   dailyBudget: z.coerce.number().positive({ message: "Must be positive" }),
+  aov: z.coerce.number().positive({ message: "AOV must be positive" }),
   pacingP: z.coerce.number().min(0),
   pacingI: z.coerce.number().min(0),
   pacingD: z.coerce.number().min(0),
@@ -46,6 +47,7 @@ export default function MultiDaySimulator() {
       initialTargetRoi: 15,
       initialDeliveredRoi: 20,
       dailyBudget: 300,
+      aov: 300,
       pacingP: 0.2,
       pacingI: 0,
       pacingD: 0,
@@ -66,7 +68,7 @@ export default function MultiDaySimulator() {
     setTimeout(async () => {
       const simulationResults = await runMultiDaySimulation({
           ...data,
-          numDays: 5,
+          numDays: 3,
       }, onProgress);
       
       setResults(simulationResults);
@@ -84,7 +86,7 @@ export default function MultiDaySimulator() {
         totals[r.day].spend += r.spend;
         totals[r.day].gmv += r.gmv;
         totals[r.day].clicks += r.clicks;
-        totals[r.day].orders += Math.floor(r.gmv / 300); // AOV assumption
+        totals[r.day].orders += r.orders;
     });
     return Object.values(totals);
   }, [results]);
@@ -124,6 +126,21 @@ export default function MultiDaySimulator() {
                             <div className="relative">
                               <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <Input type="number" placeholder="300" {...field} className="pl-8" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control} name="aov"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Average Order Value</FormLabel>
+                           <FormControl>
+                            <div className="relative">
+                              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input type="number" {...field} className="pl-8" />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -188,7 +205,7 @@ export default function MultiDaySimulator() {
                     </Card>
                 </div>
                 <Button type="submit" className="w-full lg:w-auto" disabled={isLoading}>
-                  {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run 5-Day Simulation </>}
+                  {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run 3-Day Simulation </>}
                 </Button>
               </form>
             </Form>
@@ -199,7 +216,7 @@ export default function MultiDaySimulator() {
         {isLoading && (
           <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
             <div className="w-full max-w-md p-8 text-center">
-              <p className="text-lg font-semibold mb-2">Running 5-day simulation... ({progress.toFixed(0)}%)</p>
+              <p className="text-lg font-semibold mb-2">Running 3-day simulation... ({progress.toFixed(0)}%)</p>
               <p className="text-muted-foreground mb-4">
                 Please wait while we process the bidding algorithm across thousands of intervals.
               </p>
@@ -211,7 +228,7 @@ export default function MultiDaySimulator() {
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">
             <Card>
                 <CardHeader>
-                    <CardTitle>5-Day Performance</CardTitle>
+                    <CardTitle>3-Day Performance</CardTitle>
                     <CardDescription>Intra-day performance of the bidding algorithm at 30-min intervals.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -226,10 +243,10 @@ export default function MultiDaySimulator() {
                                     label={{ value: 'Interval (30 mins)', position: 'insideBottom', offset: -5 }}
                                 />
                                 <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--primary))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
-                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" label={{ value: 'GMV / Clicks', angle: 90, position: 'insideRight' }} />
+                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" label={{ value: 'GMV', angle: 90, position: 'insideRight' }} />
                                 <Tooltip 
                                     contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))' }}
-                                    labelFormatter={(label, payload) => `Day ${payload?.[0]?.payload.day}, Interval ${label}`}
+                                    labelFormatter={(label, payload) => `Day ${payload?.[0]?.payload.day}, Interval ${payload?.[0]?.payload.timestamp}`}
                                 />
                                 <Legend />
                                 <Area yAxisId="right" type="monotone" dataKey="gmv" name="Catalog GMV" fill="hsl(var(--chart-2) / 0.2)" stroke="hsl(var(--chart-2) / 0.5)" dot={false} />
@@ -237,7 +254,6 @@ export default function MultiDaySimulator() {
                                 <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" dot={false} />
-                                <Line yAxisId="right" type="monotone" dataKey="clicks" name="Catalog Clicks" stroke="hsl(var(--chart-3))" dot={false} />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
