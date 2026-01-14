@@ -27,11 +27,11 @@ body {
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 217 56% 41%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-1: 204 90% 53%; /* day_roi - Blue Bars */
+    --chart-2: 180 60% 85%; /* catalog_gmv - Light Cyan/Teal Area */
+    --chart-3: 120 73% 85%; /* catalog_clicks - Light Green Line */
+    --chart-4: 258 74% 66%; /* catalog_roi - Purple Line */
+    --chart-5: 35 100% 68%; /* roi_target - Orange Line */
     --radius: 0.5rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -62,11 +62,11 @@ body {
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 217 56% 41%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-1: 204 90% 53%; /* day_roi - Blue Bars */
+    --chart-2: 180 60% 85%; /* catalog_gmv - Light Cyan/Teal Area */
+    --chart-3: 120 73% 85%; /* catalog_clicks - Light Green Line */
+    --chart-4: 258 74% 66%; /* catalog_roi - Purple Line */
+    --chart-5: 35 100% 68%; /* roi_target - Orange Line */
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

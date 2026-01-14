@@ -249,12 +249,12 @@ export default function MultiDaySimulator() {
                                     formatter={(value: number) => value.toFixed(2)}
                                 />
                                 <Legend />
-                                <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" fill="hsl(var(--chart-2) / 0.2)" stroke="hsl(var(--chart-2) / 0.5)" dot={false} />
-                                <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1) / 0.5)" />
+                                <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" fill="hsl(var(--chart-2))" stroke="hsl(var(--chart-2))" dot={false} />
+                                <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1))" />
                                 <Line yAxisId="right" type="monotone" dataKey="dayCumulativeClicks" name="Daily Clicks" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false}/>
-                                <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" dot={false} />
+                                <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--primary))" strokeDasharray="5 5" dot={false} />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
