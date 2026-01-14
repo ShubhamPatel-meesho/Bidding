@@ -9,13 +9,19 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Target, Cog } from 'lucide-react';
+import { Sparkles, IndianRupee, Target, Cog, HelpCircle } from 'lucide-react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import type { TimeIntervalResult } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { CustomChartTooltip } from './chart-tooltip';
+import {
+  Tooltip as UiTooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 
 const formSchema = z.object({
@@ -27,6 +33,8 @@ const formSchema = z.object({
   pacingP: z.coerce.number().min(0),
   pacingI: z.coerce.number().min(0),
   pacingD: z.coerce.number().min(0),
+  nValue: z.coerce.number().positive({ message: "Must be positive" }),
+  kValue: z.coerce.number().positive({ message: "Must be positive" }),
 });
 
 type MultiDayFormValues = z.infer<typeof formSchema>;
@@ -52,6 +60,8 @@ export default function MultiDaySimulator() {
       pacingP: 0.2,
       pacingI: 0,
       pacingD: 0,
+      nValue: 3000,
+      kValue: 600,
     },
   });
 
@@ -101,7 +111,7 @@ export default function MultiDaySimulator() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
                     <FormField
                       control={form.control} name="slRoi"
                       render={({ field }) => (
@@ -167,14 +177,15 @@ export default function MultiDaySimulator() {
                         </FormItem>
                       )}
                     />
-                    <Card className="col-span-full lg:col-span-3">
+                    <Card className="col-span-full md:col-span-2 lg:col-span-3">
                         <CardContent className="pt-6">
+                              <p className="text-sm font-medium mb-2">PID Controller Gains</p>
                              <div className="grid grid-cols-3 gap-4">
                                 <FormField
                                 control={form.control} name="pacingP"
                                 render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel className="flex items-center gap-2 text-sm"><Cog className="w-3 h-3" /> P</FormLabel>
+                                    <FormLabel className="flex items-center gap-2 text-sm"><Cog className="w-3 h-3" /> P (Proportional)</FormLabel>
                                     <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
@@ -184,7 +195,7 @@ export default function MultiDaySimulator() {
                                 control={form.control} name="pacingI"
                                 render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel>I</FormLabel>
+                                    <FormLabel>I (Integral)</FormLabel>
                                     <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
@@ -194,11 +205,38 @@ export default function MultiDaySimulator() {
                                 control={form.control} name="pacingD"
                                 render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel>D</FormLabel>
+                                    <FormLabel>D (Derivative)</FormLabel>
                                     <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
                                 )}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                     <Card className="col-span-full md:col-span-1 lg:col-span-2">
+                        <CardContent className="pt-6">
+                            <p className="text-sm font-medium mb-2">PID Windowing</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control} name="nValue"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-1">N <TooltipProvider><UiTooltip><TooltipTrigger asChild><HelpCircle className="w-3 h-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p>Clicks for ROI calculation</p></TooltipContent></UiTooltip></TooltipProvider></FormLabel>
+                                            <FormControl><Input type="number" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control} name="kValue"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-1">K <TooltipProvider><UiTooltip><TooltipTrigger asChild><HelpCircle className="w-3 h-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p>Clicks for PID update</p></TooltipContent></UiTooltip></TooltipProvider></FormLabel>
+                                            <FormControl><Input type="number" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
                             </div>
                         </CardContent>

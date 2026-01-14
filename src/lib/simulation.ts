@@ -138,14 +138,11 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 
 
 // --- New Multi-Day Simulator ---
-const CLICKS_FOR_ROI_CALC = 3000;
-const CLICKS_FOR_ROI_UPDATE = 600;
-
 export async function runMultiDaySimulation(
     params: MultiDaySimulationParams, 
     onProgress?: (progress: number) => void
 ): Promise<TimeIntervalResult[]> {
-  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, dailyBudget, numDays, initialDeliveredRoi, aov } = params;
+  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue } = params;
 
   let timeSeries: TimeIntervalResult[] = [];
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
@@ -156,13 +153,13 @@ export async function runMultiDaySimulation(
     const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 1); // Use peak time for initial guess
     const initialPCVR = initialPCVRResponse.adjustedPCVR;
     const initialBid = initialPCVR * (aov / initialTargetRoi);
-    const warmupSpend = CLICKS_FOR_ROI_CALC * initialBid;
+    const warmupSpend = nValue * initialBid;
     const warmupGmv = warmupSpend * initialDeliveredRoi;
     const warmupOrders = Math.floor(warmupGmv / aov);
     recentHistory.push({
       spend: warmupSpend,
       gmv: warmupGmv,
-      clicks: CLICKS_FOR_ROI_CALC,
+      clicks: nValue,
       orders: warmupOrders,
     });
   }
@@ -190,7 +187,7 @@ export async function runMultiDaySimulation(
     const remainingDailyBudget = dailyBudget - dailySpend;
 
     // --- PID Controller Logic ---
-    if (clicksSinceLastUpdate >= CLICKS_FOR_ROI_UPDATE && recentHistory.length > 0) {
+    if (clicksSinceLastUpdate >= kValue && recentHistory.length > 0) {
       const error = (slRoi - deliveredRoi) / slRoi;
       integralError += error;
       const derivativeError = error - previousError;
@@ -244,18 +241,18 @@ export async function runMultiDaySimulation(
     let historyToKeep: { spend: number; gmv: number; clicks: number, orders: number }[] = [];
     for(let j = recentHistory.length - 1; j >= 0; j--) {
         const hist = recentHistory[j];
-        if (rollingClicks + hist.clicks <= CLICKS_FOR_ROI_CALC) {
+        if (rollingClicks + hist.clicks <= nValue) {
             rollingClicks += hist.clicks;
             historyToKeep.unshift(hist);
         } else {
-            const fractionToKeep = (CLICKS_FOR_ROI_CALC - rollingClicks) / hist.clicks;
+            const fractionToKeep = (nValue - rollingClicks) / hist.clicks;
             historyToKeep.unshift({
                 spend: hist.spend * fractionToKeep,
                 gmv: hist.gmv * fractionToKeep,
                 clicks: hist.clicks * fractionToKeep,
                 orders: hist.orders * fractionToKeep,
             });
-            rollingClicks = CLICKS_FOR_ROI_CALC;
+            rollingClicks = nValue;
             break;
         }
     }
@@ -272,8 +269,9 @@ export async function runMultiDaySimulation(
     const daySpend = dailySpend + spend;
     const dayROI = daySpend > 0 ? dayGmv / daySpend : 0;
     
-    const dayCumulativeClicks = (dayData[dayData.length - 1]?.dayCumulativeClicks ?? 0) + clicks;
-    const dayCumulativeGmv = (dayData[dayData.length - 1]?.dayCumulativeGmv ?? 0) + gmv;
+    const dayCumulativeClicks = (dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeClicks : 0) + clicks;
+    const dayCumulativeGmv = (dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeGmv : 0) + gmv;
+
     
     timeSeries.push({
       timestamp: intervalIndexInDay,

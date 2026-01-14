@@ -59,6 +59,8 @@ export type MultiDaySimulationParams = {
   pacingI: number;
   pacingD: number;
   numDays: number;
+  nValue: number;
+  kValue: number;
 };
 
 export type TimeIntervalResult = {
