@@ -271,7 +271,8 @@ export async function runMultiDaySimulation(
     
     const dayCumulativeClicks = (dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeClicks : 0) + clicks;
     const dayCumulativeGmv = (dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeGmv : 0) + gmv;
-
+    const dayCumulativeSpend = dailySpend + spend;
+    const dayBudgetUtilisation = dailyBudget > 0 ? dayCumulativeSpend / dailyBudget : 0;
     
     timeSeries.push({
       timestamp: intervalIndexInDay,
@@ -289,6 +290,8 @@ export async function runMultiDaySimulation(
       avgBid: bid,
       dayCumulativeClicks: dayCumulativeClicks,
       dayCumulativeGmv: dayCumulativeGmv,
+      dayCumulativeSpend: dayCumulativeSpend,
+      dayBudgetUtilisation: dayBudgetUtilisation,
     });
   }
 

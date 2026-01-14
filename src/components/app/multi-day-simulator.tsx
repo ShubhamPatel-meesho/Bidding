@@ -88,15 +88,18 @@ export default function MultiDaySimulator() {
 
   const dailyTotals = useMemo(() => {
     if (!results) return [];
-    const totals: { [key: number]: { day: number, spend: number, gmv: number, clicks: number, orders: number } } = {};
+    const totals: { [key: number]: { day: number; spend: number; gmv: number; clicks: number; orders: number; weightedTargetROI: number, totalClicksForWeight: number } } = {};
     results.forEach(r => {
         if (!totals[r.day]) {
-            totals[r.day] = { day: r.day, spend: 0, gmv: 0, clicks: 0, orders: 0 };
+            totals[r.day] = { day: r.day, spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0 };
         }
-        totals[r.day].spend += r.spend;
-        totals[r.day].gmv += r.gmv;
-        totals[r.day].clicks += r.clicks;
-        totals[r.day].orders += r.orders;
+        const dayTotal = totals[r.day];
+        dayTotal.spend += r.spend;
+        dayTotal.gmv += r.gmv;
+        dayTotal.clicks += r.clicks;
+        dayTotal.orders += r.orders;
+        dayTotal.weightedTargetROI += r.targetROI * r.clicks;
+        dayTotal.totalClicksForWeight += r.clicks;
     });
     return Object.values(totals);
   }, [results]);
@@ -307,6 +310,7 @@ export default function MultiDaySimulator() {
                             <TableRow>
                                 <TableHead>Day</TableHead>
                                 <TableHead className="text-right">Delivered ROI</TableHead>
+                                <TableHead className="text-right">Avg. Target ROI</TableHead>
                                 <TableHead className="text-right">Orders</TableHead>
                                 <TableHead className="text-right">Clicks</TableHead>
                                 <TableHead className="text-right">Spends</TableHead>
@@ -318,10 +322,12 @@ export default function MultiDaySimulator() {
                             {dailyTotals.map(day => {
                                 const deliveredROI = day.spend > 0 ? day.gmv / day.spend : 0;
                                 const budgetUtilisation = form.getValues('dailyBudget') > 0 ? day.spend / form.getValues('dailyBudget') : 0;
+                                const avgTargetROI = day.totalClicksForWeight > 0 ? day.weightedTargetROI / day.totalClicksForWeight : 0;
                                 return (
                                     <TableRow key={day.day}>
                                         <TableCell>Day {day.day}</TableCell>
                                         <TableCell className="text-right">{formatRoi(deliveredROI)}</TableCell>
+                                        <TableCell className="text-right">{formatRoi(avgTargetROI)}</TableCell>
                                         <TableCell className="text-right">{day.orders}</TableCell>
                                         <TableCell className="text-right">{day.clicks.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.spend)}</TableCell>

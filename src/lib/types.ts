@@ -79,4 +79,6 @@ export type TimeIntervalResult = {
   avgBid: number;
   dayCumulativeClicks: number;
   dayCumulativeGmv: number;
+  dayCumulativeSpend: number;
+  dayBudgetUtilisation: number;
 };
