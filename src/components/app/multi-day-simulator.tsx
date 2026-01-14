@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,12 +9,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Target, Percent, Cog } from 'lucide-react';
+import { Sparkles, IndianRupee, Target, Cog } from 'lucide-react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import type { TimeIntervalResult } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
+import { CustomChartTooltip } from './chart-tooltip';
 
 
 const formSchema = z.object({
@@ -244,9 +245,7 @@ export default function MultiDaySimulator() {
                                 <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--primary))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
                                 <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" />
                                 <Tooltip 
-                                    contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))' }}
-                                    labelFormatter={(label, payload) => `Day ${payload?.[0]?.payload.day}, Interval ${payload?.[0]?.payload.timestamp}`}
-                                    formatter={(value: number) => value.toFixed(2)}
+                                    content={<CustomChartTooltip />}
                                 />
                                 <Legend />
                                 <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" fill="hsl(var(--chart-2))" stroke="hsl(var(--chart-2))" dot={false} />

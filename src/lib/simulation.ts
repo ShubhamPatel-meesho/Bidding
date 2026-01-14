@@ -272,12 +272,8 @@ export async function runMultiDaySimulation(
     const daySpend = dailySpend + spend;
     const dayROI = daySpend > 0 ? dayGmv / daySpend : 0;
     
-    const prevDayCumulativeClicks = dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeClicks : 0;
-    const dayCumulativeClicks = prevDayCumulativeClicks + clicks;
-    
-    const prevDayCumulativeGmv = dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeGmv : 0;
-    const dayCumulativeGmv = prevDayCumulativeGmv + gmv;
-
+    const dayCumulativeClicks = (dayData[dayData.length - 1]?.dayCumulativeClicks ?? 0) + clicks;
+    const dayCumulativeGmv = (dayData[dayData.length - 1]?.dayCumulativeGmv ?? 0) + gmv;
     
     timeSeries.push({
       timestamp: intervalIndexInDay,
@@ -292,6 +288,7 @@ export async function runMultiDaySimulation(
       orders: orders,
       gmv: gmv,
       spend: spend,
+      avgBid: bid,
       dayCumulativeClicks: dayCumulativeClicks,
       dayCumulativeGmv: dayCumulativeGmv,
     });
