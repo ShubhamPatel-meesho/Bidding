@@ -212,7 +212,7 @@ export default function MultiDaySimulator() {
                         </FormItem>
                       )}
                     />
-                     <Card className="col-span-full md:col-span-1 lg:col-span-2 xl:col-span-1">
+                     <Card className="col-span-full md:col-span-1">
                         <CardContent className="pt-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
@@ -238,7 +238,9 @@ export default function MultiDaySimulator() {
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="col-span-full md:col-span-2 lg:col-span-3">
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
                         <CardContent className="pt-6">
                               <p className="text-sm font-medium mb-2">PID Controller Gains</p>
                              <div className="grid grid-cols-3 gap-4">
@@ -275,7 +277,7 @@ export default function MultiDaySimulator() {
                             </div>
                         </CardContent>
                     </Card>
-                     <Card className="col-span-full md:col-span-1 lg:col-span-2">
+                     <Card>
                         <CardContent className="pt-6">
                             <p className="text-sm font-medium mb-2">PID Windowing</p>
                             <div className="grid grid-cols-2 gap-4">
