@@ -13,7 +13,6 @@ const INTERVALS_PER_HOUR = 2; // 30-minute intervals
 // --- Time-based click potential (per window) ---
 const clickPotentialByWindow = [0.4, 1.0, 0.9, 0.7]; // Corresponds to 0-6h, 6-12h, 12-18h, 18-24h
 
-// --- Time-based click potential based on the provided chart ---
 // This is now per 30-minute interval within a day (48 intervals)
 const clickPotentialByInterval = Array.from({ length: 48 }, (_, i) => {
     const hour = Math.floor(i / INTERVALS_PER_HOUR);
@@ -150,12 +149,28 @@ export async function runMultiDaySimulation(
 
   let timeSeries: TimeIntervalResult[] = [];
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
+  
+  // --- WARM-UP PHASE ---
+  // Pre-populate history to achieve the initialDeliveredRoi
+  const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 1); // Use peak time for initial guess
+  const initialPCVR = initialPCVRResponse.adjustedPCVR;
+  const initialBid = initialPCVR * (aov / initialTargetRoi);
+  const warmupSpend = CLICKS_FOR_ROI_CALC * initialBid;
+  const warmupGmv = warmupSpend * initialDeliveredRoi;
+  const warmupOrders = Math.floor(warmupGmv / aov);
+  recentHistory.push({
+    spend: warmupSpend,
+    gmv: warmupGmv,
+    clicks: CLICKS_FOR_ROI_CALC,
+    orders: warmupOrders,
+  });
+  
   let clicksSinceLastUpdate = 0;
   let currentTargetRoi = initialTargetRoi;
   let deliveredRoi = initialDeliveredRoi; 
   let integralError = 0;
   let previousError = 0;
-  let orderCarryOver = 0; // Accumulator for fractional orders
+  let orderCarryOver = 0;
 
   const totalIntervals = numDays * 24 * INTERVALS_PER_HOUR;
   
@@ -164,7 +179,6 @@ export async function runMultiDaySimulation(
     const hour = Math.floor((i % (24 * INTERVALS_PER_HOUR)) / INTERVALS_PER_HOUR);
     const intervalIndexInDay = i % (24 * INTERVALS_PER_HOUR);
     
-    // Report progress
     if (onProgress) {
         onProgress((i + 1) / totalIntervals);
     }
@@ -175,17 +189,15 @@ export async function runMultiDaySimulation(
 
     // --- PID Controller Logic ---
     if (clicksSinceLastUpdate >= CLICKS_FOR_ROI_UPDATE && recentHistory.length > 0) {
-      const error = (slRoi - deliveredRoi) / slRoi; // Error as a percentage of SL ROI
+      const error = (slRoi - deliveredRoi) / slRoi;
       integralError += error;
       const derivativeError = error - previousError;
       
       const adjustment = (pacingP * error) + (pacingI * integralError) + (pacingD * derivativeError);
-      
-      // Update target ROI based on adjustment factor
       currentTargetRoi = currentTargetRoi * (1 + adjustment);
       
       previousError = error;
-      clicksSinceLastUpdate = 0; // Reset counter
+      clicksSinceLastUpdate = 0;
     }
 
     // --- Core Bid & Click Simulation for Interval ---
@@ -212,19 +224,15 @@ export async function runMultiDaySimulation(
     const maxIntervalClicks = HIGH_CLICKS_PER_HOUR * clickPotential * randomInRange(0.9, 1.1) * clickAttainmentFactor;
 
     const affordableClicks = (bid > 0) ? remainingDailyBudget / bid : 0;
-    const clicks = Math.max(0, Math.min(maxIntervalClicks, affordableClicks));
-
+    const clicks = Math.floor(Math.max(0, Math.min(maxIntervalClicks, affordableClicks)));
     const spend = clicks * bid;
     
-    // --- New Order Calculation Logic ---
     const actualCVR = pCvr * randomInRange(0.9, 1.1);
     const fractionalOrders = clicks * actualCVR + orderCarryOver;
     const orders = Math.floor(fractionalOrders);
-    orderCarryOver = fractionalOrders - orders; // Keep the remainder for the next interval
-
+    orderCarryOver = fractionalOrders - orders;
     const gmv = orders * aov;
     
-    // --- Update history for Delivered ROI calculation ---
     if (clicks > 0) {
       recentHistory.push({ spend, gmv, clicks, orders });
       clicksSinceLastUpdate += clicks;
@@ -262,6 +270,7 @@ export async function runMultiDaySimulation(
     const daySpend = dailySpend + spend;
     const dayROI = daySpend > 0 ? dayGmv / daySpend : 0;
     const dayCumulativeClicks = dayData.reduce((s, d) => s + d.clicks, 0) + clicks;
+    const dayCumulativeGmv = dayData.reduce((s, d) => s + d.dayCumulativeGmv, 0) + gmv;
     
     timeSeries.push({
       timestamp: intervalIndexInDay,
@@ -269,7 +278,7 @@ export async function runMultiDaySimulation(
       hour: hour,
       label: `D${day} H${hour}`,
       targetROI: currentTargetRoi,
-      deliveredROI: deliveredRoi, // Catalog ROI
+      deliveredROI: deliveredRoi,
       dayROI: dayROI,
       slRoi: slRoi,
       clicks: clicks,
@@ -277,6 +286,7 @@ export async function runMultiDaySimulation(
       gmv: gmv,
       spend: spend,
       dayCumulativeClicks: dayCumulativeClicks,
+      dayCumulativeGmv: dayCumulativeGmv,
     });
   }
 

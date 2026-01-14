@@ -75,4 +75,5 @@ export type TimeIntervalResult = {
   gmv: number;
   spend: number;
   dayCumulativeClicks: number;
+  dayCumulativeGmv: number;
 };

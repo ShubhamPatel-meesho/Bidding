@@ -63,8 +63,7 @@ export default function MultiDaySimulator() {
       setProgress(p * 100);
     };
 
-    // We need to run this async but without blocking the main thread to allow UI updates
-    // Using a timeout allows the state to update and re-render the progress.
+    // Using a timeout allows the state to update and re-render the progress bar.
     setTimeout(async () => {
       const simulationResults = await runMultiDaySimulation({
           ...data,
@@ -247,9 +246,10 @@ export default function MultiDaySimulator() {
                                 <Tooltip 
                                     contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))' }}
                                     labelFormatter={(label, payload) => `Day ${payload?.[0]?.payload.day}, Interval ${payload?.[0]?.payload.timestamp}`}
+                                    formatter={(value: number) => value.toFixed(2)}
                                 />
                                 <Legend />
-                                <Area yAxisId="right" type="monotone" dataKey="gmv" name="Catalog GMV" fill="hsl(var(--chart-2) / 0.2)" stroke="hsl(var(--chart-2) / 0.5)" dot={false} />
+                                <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" fill="hsl(var(--chart-2) / 0.2)" stroke="hsl(var(--chart-2) / 0.5)" dot={false} />
                                 <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1) / 0.5)" />
                                 <Line yAxisId="right" type="monotone" dataKey="dayCumulativeClicks" name="Daily Clicks" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false}/>
