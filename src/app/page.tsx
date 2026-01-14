@@ -49,17 +49,8 @@ export default function Home() {
 
   return (
     <SidebarProvider>
-        <div className="min-h-screen flex flex-col items-center p-4 sm:p-8 md:p-12 bg-background text-foreground">
-            <div className="w-full max-w-7xl mx-auto flex">
-                 <main className="mt-8 flex-1">
-                    <Header />
-                    <div className="mt-8">
-                      {renderContent()}
-                    </div>
-                </main>
-            </div>
-        </div>
-        <Sidebar side="right" variant="sidebar" collapsible="icon">
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
+        <Sidebar side="left" variant="sidebar" collapsible="icon">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => setActiveView('simulator')} isActive={activeView === 'simulator'} tooltip="Bidding Simulator">
@@ -81,6 +72,15 @@ export default function Home() {
             </SidebarMenuItem>
           </SidebarMenu>
         </Sidebar>
+        <SidebarInset>
+            <div className="p-4 sm:p-8 md:p-12 w-full max-w-7xl mx-auto">
+                <Header />
+                <main className="mt-8">
+                    {renderContent()}
+                </main>
+            </div>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }
