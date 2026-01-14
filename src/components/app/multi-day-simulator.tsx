@@ -39,21 +39,6 @@ export default function MultiDaySimulator() {
   const [results, setResults] = useState<TimeIntervalResult[] | null>(null);
   const [progress, setProgress] = useState(0);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isLoading) {
-      setProgress(0);
-      let step = 0;
-      timer = setInterval(() => {
-        step += 1;
-        setProgress(step);
-      }, 50); // This will fill the bar over ~5 seconds. Adjust as needed.
-    }
-    return () => {
-      clearInterval(timer);
-    };
-  }, [isLoading]);
-
   const form = useForm<MultiDayFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -70,14 +55,23 @@ export default function MultiDaySimulator() {
   const runAndProcessSimulation: SubmitHandler<MultiDayFormValues> = async (data) => {
     setIsLoading(true);
     setResults(null);
+    setProgress(0);
 
-    const simulationResults = await runMultiDaySimulation({
-        ...data,
-        numDays: 5,
-    });
-    
-    setResults(simulationResults);
-    setIsLoading(false);
+    const onProgress = (p: number) => {
+      setProgress(p * 100);
+    };
+
+    // We need to run this async but without blocking the main thread to allow UI updates
+    // Using a timeout allows the state to update and re-render the progress.
+    setTimeout(async () => {
+      const simulationResults = await runMultiDaySimulation({
+          ...data,
+          numDays: 5,
+      }, onProgress);
+      
+      setResults(simulationResults);
+      setIsLoading(false);
+    }, 10);
   }
 
   const dailyTotals = useMemo(() => {
@@ -205,7 +199,7 @@ export default function MultiDaySimulator() {
         {isLoading && (
           <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
             <div className="w-full max-w-md p-8 text-center">
-              <p className="text-lg font-semibold mb-2">Running 5-day simulation...</p>
+              <p className="text-lg font-semibold mb-2">Running 5-day simulation... ({progress.toFixed(0)}%)</p>
               <p className="text-muted-foreground mb-4">
                 Please wait while we process the bidding algorithm across thousands of intervals.
               </p>
@@ -301,3 +295,5 @@ export default function MultiDaySimulator() {
     </div>
   );
 }
+
+    

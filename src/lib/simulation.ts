@@ -141,7 +141,10 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 const CLICKS_FOR_ROI_CALC = 3000;
 const CLICKS_FOR_ROI_UPDATE = 600;
 
-export async function runMultiDaySimulation(params: MultiDaySimulationParams): Promise<TimeIntervalResult[]> {
+export async function runMultiDaySimulation(
+    params: MultiDaySimulationParams, 
+    onProgress?: (progress: number) => void
+): Promise<TimeIntervalResult[]> {
   const { slRoi, initialTargetRoi, pacingP, dailyBudget, numDays, initialDeliveredRoi } = params;
 
   let timeSeries: TimeIntervalResult[] = [];
@@ -157,6 +160,11 @@ export async function runMultiDaySimulation(params: MultiDaySimulationParams): P
     const day = Math.floor(i / (24 * INTERVALS_PER_HOUR)) + 1;
     const hour = Math.floor((i % (24 * INTERVALS_PER_HOUR)) / INTERVALS_PER_HOUR);
     const intervalIndexInDay = i % (24 * INTERVALS_PER_HOUR);
+    
+    // Report progress
+    if (onProgress) {
+        onProgress((i + 1) / totalIntervals);
+    }
     
     const dayData = timeSeries.filter(d => d.day === day);
     const dailySpend = dayData.reduce((sum, d) => sum + d.spend, 0);
@@ -255,3 +263,5 @@ export async function runMultiDaySimulation(params: MultiDaySimulationParams): P
 
   return timeSeries;
 }
+
+    
