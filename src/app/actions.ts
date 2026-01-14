@@ -1,7 +1,6 @@
 
 'use server';
 
-const BASE_PCVR = 0.015; // The pCVR for a "standard" campaign, reverted from 0.025
 const BASE_AOV = 300; // The AOV at which BASE_PCVR is applicable
 const BASELINE_ROI = 5; // A typical or average ROI target
 
@@ -19,12 +18,12 @@ const pCVR_MODIFIER_BY_WINDOW = [
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
 // The pCVR is adjusted based on AOV and the aggressiveness of the Target ROI.
-export async function getAdjustedPCVR(targetROI: number, aov: number, windowIndex: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
+export async function getAdjustedPCVR(targetROI: number, aov: number, windowIndex: number, basePCVR: number, calibrationError: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
   try {
     // 1. Adjust base pCVR based on AOV. Higher AOV means customers are expected to be more selective.
     // For every 100 rupees increase in AOV over the base, decrease pCVR by 10% of the base.
     const aovFactor = Math.max(0, (aov - BASE_AOV) / 100);
-    const aovAdjustedPCVR = BASE_PCVR * (1 - (aovFactor * 0.1));
+    const aovAdjustedPCVR = basePCVR * (1 - (aovFactor * 0.1));
 
     // 2. Create a non-linear bias based on how much the targetROI deviates from the baseline.
     // A much higher ROI target implies focusing on a very specific, high-intent audience, increasing pCVR.
@@ -43,15 +42,16 @@ export async function getAdjustedPCVR(targetROI: number, aov: number, windowInde
     // 3. Apply the time-of-day modifier
     const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_WINDOW[windowIndex];
 
+    // 4. Apply calibration error
+    const errorAdjustedPCVR = timeAdjustedPCVR * (1 + randomInRange(-calibrationError, calibrationError));
+
 
     // Add a small amount of randomness to simulate market fluctuations
-    const randomizedPCVR = timeAdjustedPCVR * randomInRange(0.95, 1.05);
+    const randomizedPCVR = errorAdjustedPCVR * randomInRange(0.95, 1.05);
 
     return { adjustedPCVR: Math.max(0.001, randomizedPCVR) }; // Ensure pCVR doesn't go to zero or negative
   } catch (e) {
     console.error('Error in getAdjustedPCVR:', e);
-    return { error: 'Failed to get adjustment. Using base pCVR.', adjustedPCVR: BASE_PCVR };
+    return { error: 'Failed to get adjustment. Using base pCVR.', adjustedPCVR: basePCVR };
   }
 }
-
-    

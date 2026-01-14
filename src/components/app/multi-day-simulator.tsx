@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Target, Cog, HelpCircle } from 'lucide-react';
+import { Sparkles, IndianRupee, Target, Cog, HelpCircle, Percent } from 'lucide-react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import type { TimeIntervalResult } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
@@ -30,6 +30,8 @@ const formSchema = z.object({
   initialDeliveredRoi: z.coerce.number().positive({ message: "Must be positive" }),
   dailyBudget: z.coerce.number().positive({ message: "Must be positive" }),
   aov: z.coerce.number().positive({ message: "AOV must be positive" }),
+  basePCVR: z.coerce.number().min(0, { message: "Must be non-negative" }),
+  calibrationError: z.coerce.number().min(0).max(1, { message: "Must be between 0 and 1" }),
   pacingP: z.coerce.number().min(0),
   pacingI: z.coerce.number().min(0),
   pacingD: z.coerce.number().min(0),
@@ -42,6 +44,34 @@ type MultiDayFormValues = z.infer<typeof formSchema>;
 const formatRoi = (value: number) => value.toFixed(2);
 const formatCurrency = (value: number) => `₹${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 const formatPercent = (value: number) => `${(value * 100).toFixed(0)}%`;
+
+const CustomLegend = (props: any) => {
+  const { payload } = props;
+  const items = payload.map((entry: any) => {
+      const { dataKey, color, value } = entry;
+      // Remap names for legend
+      const nameMapping: { [key: string]: string } = {
+          'dayCumulativeGmv': 'Catalog GMV',
+          'dayROI': 'Day ROI',
+          'dayCumulativeClicks': 'Daily Clicks',
+          'deliveredROI': 'Catalog ROI',
+          'targetROI': 'ROI Target',
+          'slRoi': 'ROI Min',
+      };
+      return { name: nameMapping[dataKey] || dataKey, color };
+  });
+
+  return (
+    <div className="flex items-center justify-center gap-4 flex-wrap">
+      {items.map((item) => (
+        <div key={item.name} className="flex items-center gap-2 text-sm">
+          <span className="w-2.5 h-2.5" style={{ backgroundColor: item.color }}></span>
+          <span>{item.name}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 
 export default function MultiDaySimulator() {
@@ -57,6 +87,8 @@ export default function MultiDaySimulator() {
       initialDeliveredRoi: 20,
       dailyBudget: 300,
       aov: 300,
+      basePCVR: 0.01,
+      calibrationError: 0.2,
       pacingP: 0.2,
       pacingI: 0,
       pacingD: 0,
@@ -114,7 +146,7 @@ export default function MultiDaySimulator() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
                     <FormField
                       control={form.control} name="slRoi"
                       render={({ field }) => (
@@ -180,6 +212,32 @@ export default function MultiDaySimulator() {
                         </FormItem>
                       )}
                     />
+                     <Card className="col-span-full md:col-span-1 lg:col-span-2 xl:col-span-1">
+                        <CardContent className="pt-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control} name="basePCVR"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-1">Base pCVR</FormLabel>
+                                            <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.001" {...field} className="pl-8" /></div></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control} name="calibrationError"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-1">Calib. Error</FormLabel>
+                                            <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" {...field} className="pl-8" /></div></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
                     <Card className="col-span-full md:col-span-2 lg:col-span-3">
                         <CardContent className="pt-6">
                               <p className="text-sm font-medium mb-2">PID Controller Gains</p>
@@ -275,20 +333,20 @@ export default function MultiDaySimulator() {
                 <CardContent>
                     <div className="h-[60vh] w-full">
                         <ResponsiveContainer>
-                             <ComposedChart data={results} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                             <ComposedChart data={results} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis 
                                     dataKey="timestamp" 
                                     tickFormatter={(ts, index) => (index % 48 === 0) ? `Day ${Math.floor(index/48)+1}` : ''}
                                     tickLine={false}
-                                    label={{ value: 'Interval (30 mins)', position: 'insideBottom', offset: -5 }}
+                                    label={{ value: 'Interval (30 mins)', position: 'insideBottom', offset: -15 }}
                                 />
-                                <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--primary))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
-                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" />
+                                <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
+                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" />
                                 <Tooltip 
                                     content={<CustomChartTooltip />}
                                 />
-                                <Legend />
+                                <Legend content={<CustomLegend />} wrapperStyle={{ bottom: 0 }} />
                                 <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" fill="hsl(var(--chart-2))" stroke="hsl(var(--chart-2))" dot={false} />
                                 <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1))" />
                                 <Line yAxisId="right" type="monotone" dataKey="dayCumulativeClicks" name="Daily Clicks" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false}/>
@@ -328,7 +386,7 @@ export default function MultiDaySimulator() {
                                         <TableCell>Day {day.day}</TableCell>
                                         <TableCell className="text-right">{formatRoi(deliveredROI)}</TableCell>
                                         <TableCell className="text-right">{formatRoi(avgTargetROI)}</TableCell>
-                                        <TableCell className="text-right">{day.orders}</TableCell>
+                                        <TableCell className="text-right">{day.orders.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{day.clicks.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.spend)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(form.getValues('dailyBudget'))}</TableCell>
