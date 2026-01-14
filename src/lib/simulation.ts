@@ -1,4 +1,5 @@
 
+
 import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
 
@@ -138,18 +139,16 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 
 
 // --- New Multi-Day Simulator ---
-export async function runMultiDaySimulation(
-    params: MultiDaySimulationParams, 
-    onProgress?: (progress: number) => void
-): Promise<TimeIntervalResult[]> {
+export async function* runMultiDaySimulation(
+    params: MultiDaySimulationParams
+): AsyncGenerator<TimeIntervalResult> {
   const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, basePCVR, calibrationError } = params;
 
-  let timeSeries: TimeIntervalResult[] = [];
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
   
   // --- WARM-UP PHASE ---
   // Pre-populate history to achieve the initialDeliveredRoi
-  if (initialDeliveredRoi > 0) {
+  if (initialDeliveredRoi > 0 && nValue > 0) {
     const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 1, basePCVR, calibrationError); // Use peak time for initial guess
     const initialPCVR = initialPCVRResponse.adjustedPCVR;
     const initialBid = initialPCVR * (aov / initialTargetRoi);
@@ -177,13 +176,12 @@ export async function runMultiDaySimulation(
     const day = Math.floor(i / (24 * INTERVALS_PER_HOUR)) + 1;
     const hour = Math.floor((i % (24 * INTERVALS_PER_HOUR)) / INTERVALS_PER_HOUR);
     const intervalIndexInDay = i % (24 * INTERVALS_PER_HOUR);
+
+    const isNewDay = intervalIndexInDay === 0;
     
-    if (onProgress) {
-        onProgress((i + 1) / totalIntervals);
-    }
-    
-    const dayData = timeSeries.filter(d => d.day === day);
-    const dailySpend = dayData.reduce((sum, d) => sum + d.spend, 0);
+    // Get cumulative data from the PREVIOUS interval of the SAME day
+    const prevIntervalOfDay = i > 0 && !isNewDay ? yield i as unknown as TimeIntervalResult : null;
+    const dailySpend = prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeSpend : 0;
     const remainingDailyBudget = dailyBudget - dailySpend;
 
     // --- PID Controller Logic ---
@@ -265,16 +263,16 @@ export async function runMultiDaySimulation(
         deliveredRoi = totalHistoryGmv / totalHistorySpend;
     }
     
-    const dayGmv = dayData.reduce((s, d) => s + d.gmv, 0) + gmv;
-    const daySpend = dailySpend + spend;
-    const dayROI = daySpend > 0 ? dayGmv / daySpend : 0;
-    
-    const dayCumulativeClicks = (dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeClicks : 0) + clicks;
-    const dayCumulativeGmv = (dayData.length > 0 ? dayData[dayData.length - 1].dayCumulativeGmv : 0) + gmv;
     const dayCumulativeSpend = dailySpend + spend;
+    const dayGmv = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeGmv : 0) - (prevIntervalOfDay ? prevIntervalOfDay.gmv : 0) + gmv;
+    const daySpendForROI = dayCumulativeSpend - (prevIntervalOfDay ? prevIntervalOfDay.spend : 0) + spend;
+    const dayROI = daySpendForROI > 0 ? dayGmv / daySpendForROI : 0;
+    
+    const dayCumulativeClicks = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeClicks : 0) + clicks;
+    const dayCumulativeGmv = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeGmv : 0) + gmv;
     const dayBudgetUtilisation = dailyBudget > 0 ? dayCumulativeSpend / dailyBudget : 0;
     
-    timeSeries.push({
+    const result: TimeIntervalResult = {
       timestamp: intervalIndexInDay,
       day: day,
       hour: hour,
@@ -292,8 +290,8 @@ export async function runMultiDaySimulation(
       dayCumulativeGmv: dayCumulativeGmv,
       dayCumulativeSpend: dayCumulativeSpend,
       dayBudgetUtilisation: dayBudgetUtilisation,
-    });
+    };
+    yield result;
   }
-
-  return timeSeries;
 }
+    

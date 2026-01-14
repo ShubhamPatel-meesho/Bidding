@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Target, Cog, HelpCircle, Percent } from 'lucide-react';
+import { Sparkles, IndianRupee, Target, Cog, HelpCircle, Percent, CalendarDays } from 'lucide-react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import type { TimeIntervalResult } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
@@ -38,6 +38,7 @@ const formSchema = z.object({
   pacingD: z.coerce.number().min(0),
   nValue: z.coerce.number().positive({ message: "Must be positive" }),
   kValue: z.coerce.number().positive({ message: "Must be positive" }),
+  numDays: z.coerce.number().positive().int().min(1, "At least 1 day"),
 });
 
 type MultiDayFormValues = z.infer<typeof formSchema>;
@@ -95,29 +96,50 @@ export default function MultiDaySimulator() {
       pacingD: 0,
       nValue: 3000,
       kValue: 600,
+      numDays: 3,
     },
   });
 
   const runAndProcessSimulation: SubmitHandler<MultiDayFormValues> = async (data) => {
     setIsLoading(true);
-    setResults(null);
+    setResults([]);
     setProgress(0);
-
-    const onProgress = (p: number) => {
-      setProgress(p * 100);
-    };
-
-    // Using a timeout allows the state to update and re-render the progress bar.
+    
+    // Using a timeout allows the UI to update to show the loading state.
     setTimeout(async () => {
-      const simulationResults = await runMultiDaySimulation({
+      const simulationGenerator = runMultiDaySimulation({
           ...data,
           basePCVR: data.basePCVR / 100, // Convert from % to decimal
           calibrationError: data.calibrationError / 100, // Convert from % to decimal
-          numDays: 3,
-      }, onProgress);
+      });
+
+      let tempResults: TimeIntervalResult[] = [];
+      const totalIntervals = data.numDays * 48;
+      let processedIntervals = 0;
+
+      const processChunk = async () => {
+        for (let i = 0; i < 48; i++) { // Process one day at a time for smoother updates
+            const result = await simulationGenerator.next();
+            if (!result.done) {
+                tempResults.push(result.value);
+                processedIntervals++;
+            } else {
+                break;
+            }
+        }
+
+        setResults([...tempResults]);
+        setProgress((processedIntervals / totalIntervals) * 100);
+
+        if (processedIntervals < totalIntervals) {
+            requestAnimationFrame(processChunk);
+        } else {
+            setIsLoading(false);
+        }
+      };
       
-      setResults(simulationResults);
-      setIsLoading(false);
+      requestAnimationFrame(processChunk);
+
     }, 10);
   }
 
@@ -149,94 +171,25 @@ export default function MultiDaySimulator() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 items-end">
-                    <FormField
-                      control={form.control} name="slRoi"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Stop-loss ROI</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input type="number" placeholder="20" {...field} className="pl-8" />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control} name="dailyBudget"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Daily Budget</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input type="number" placeholder="300" {...field} className="pl-8" />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control} name="aov"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Average Order Value</FormLabel>
-                           <FormControl>
-                            <div className="relative">
-                              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input type="number" {...field} className="pl-8" />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control} name="initialTargetRoi"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Starting Target ROI</FormLabel>
-                          <FormControl><Input type="number" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control} name="initialDeliveredRoi"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Starting Delivered ROI</FormLabel>
-                          <FormControl><Input type="number" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                        control={form.control} name="basePCVR"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="flex items-center gap-1">Base pCVR</FormLabel>
-                                <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" {...field} className="pl-8" /></div></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control} name="calibrationError"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="flex items-center gap-1">Calib. Error</FormLabel>
-                                <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="1" {...field} className="pl-8" /></div></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    <FormField control={form.control} name="numDays" render={({ field }) => ( <FormItem> <FormLabel>Simulation Days</FormLabel> <FormControl><div className="relative"><CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" {...field} className="pl-8" /></div></FormControl> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="dailyBudget" render={({ field }) => ( <FormItem> <FormLabel>Daily Budget</FormLabel> <FormControl> <div className="relative"> <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input type="number" placeholder="300" {...field} className="pl-8" /> </div> </FormControl> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="aov" render={({ field }) => ( <FormItem> <FormLabel>Average Order Value</FormLabel> <FormControl> <div className="relative"> <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input type="number" {...field} className="pl-8" /> </div> </FormControl> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="slRoi" render={({ field }) => ( <FormItem> <FormLabel>Stop-loss ROI</FormLabel> <FormControl> <div className="relative"> <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input type="number" placeholder="20" {...field} className="pl-8" /> </div> </FormControl> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="initialTargetRoi" render={({ field }) => ( <FormItem> <FormLabel>Starting Target ROI</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="initialDeliveredRoi" render={({ field }) => ( <FormItem> <FormLabel>Starting Delivered ROI</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <TooltipProvider>
+                     <Card>
+                        <CardContent className="pt-6">
+                             <p className="text-sm font-medium mb-2">pCVR Configuration</p>
+                             <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="basePCVR" render={({ field }) => ( <FormItem> <FormLabel>Base pCVR</FormLabel> <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" {...field} className="pl-8" /></div></FormControl> <FormMessage /> </FormItem> )} />
+                                <FormField control={form.control} name="calibrationError" render={({ field }) => ( <FormItem> <FormLabel>Calib. Error</FormLabel> <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="1" {...field} className="pl-8" /></div></FormControl> <FormMessage /> </FormItem> )} />
+                            </div>
+                        </CardContent>
+                    </Card>
                     <Card>
                         <CardContent className="pt-6">
                               <p className="text-sm font-medium mb-2">PID Controller Gains</p>
@@ -245,7 +198,7 @@ export default function MultiDaySimulator() {
                                 control={form.control} name="pacingP"
                                 render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel className="flex items-center gap-2 text-sm"><Cog className="w-3 h-3" /> P (Proportional)</FormLabel>
+                                    <FormLabel>P (Proportional)</FormLabel>
                                     <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
@@ -282,7 +235,10 @@ export default function MultiDaySimulator() {
                                     control={form.control} name="nValue"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="flex items-center gap-1">N <TooltipProvider><UiTooltip><TooltipTrigger asChild><HelpCircle className="w-3 h-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p>Clicks for ROI calculation</p></TooltipContent></UiTooltip></TooltipProvider></FormLabel>
+                                            <div className="flex items-center gap-1">
+                                                <FormLabel>N</FormLabel>
+                                                <UiTooltip><TooltipTrigger asChild><HelpCircle className="w-3 h-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p>Clicks for ROI calculation</p></TooltipContent></UiTooltip>
+                                            </div>
                                             <FormControl><Input type="number" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -292,7 +248,10 @@ export default function MultiDaySimulator() {
                                     control={form.control} name="kValue"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="flex items-center gap-1">K <TooltipProvider><UiTooltip><TooltipTrigger asChild><HelpCircle className="w-3 h-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p>Clicks for PID update</p></TooltipContent></UiTooltip></TooltipProvider></FormLabel>
+                                            <div className="flex items-center gap-1">
+                                                <FormLabel>K</FormLabel>
+                                                <UiTooltip><TooltipTrigger asChild><HelpCircle className="w-3 h-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p>Clicks for PID update</p></TooltipContent></UiTooltip>
+                                            </div>
                                             <FormControl><Input type="number" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -301,9 +260,10 @@ export default function MultiDaySimulator() {
                             </div>
                         </CardContent>
                     </Card>
+                    </TooltipProvider>
                 </div>
                 <Button type="submit" className="w-full lg:w-auto" disabled={isLoading}>
-                  {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run 3-Day Simulation </>}
+                  {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run Simulation </>}
                 </Button>
               </form>
             </Form>
@@ -314,7 +274,7 @@ export default function MultiDaySimulator() {
         {isLoading && (
           <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
             <div className="w-full max-w-md p-8 text-center">
-              <p className="text-lg font-semibold mb-2">Running 3-day simulation... ({progress.toFixed(0)}%)</p>
+              <p className="text-lg font-semibold mb-2">Running {form.getValues('numDays')}-day simulation... ({progress.toFixed(0)}%)</p>
               <p className="text-muted-foreground mb-4">
                 Please wait while we process the bidding algorithm across thousands of intervals.
               </p>
@@ -322,11 +282,11 @@ export default function MultiDaySimulator() {
             </div>
           </div>
         )}
-        {results && !isLoading && (
+        {results && results.length > 0 && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">
             <Card>
                 <CardHeader>
-                    <CardTitle>3-Day Performance</CardTitle>
+                    <CardTitle>{form.getValues('numDays')}-Day Performance</CardTitle>
                     <CardDescription>Intra-day performance of the bidding algorithm at 30-min intervals.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -399,7 +359,7 @@ export default function MultiDaySimulator() {
             </Card>
           </div>
         )}
-         {!isLoading && !results && (
+         {!isLoading && (!results || results.length === 0) && (
             <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
                 <div className="text-center text-muted-foreground p-8">
                     <Cog className="mx-auto h-12 w-12 mb-4" />
@@ -413,4 +373,3 @@ export default function MultiDaySimulator() {
   );
 }
 
-    
