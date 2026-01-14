@@ -5,21 +5,23 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from "@/hooks/use-toast";
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import { runSimulation } from '@/lib/simulation';
 import type { SimulationResults, LeaderboardEntry } from '@/lib/types';
 import ROIInputForm, { formSchema, type ROIFormValues } from './roi-input-form';
 import SummaryCard from './summary-card';
-import Leaderboard from './leaderboard';
-import { BarChart, Sparkles } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart } from 'lucide-react';
+import ResultsTable from './results-table';
+
+interface ROISimulatorProps {
+    leaderboard: LeaderboardEntry[];
+    setLeaderboard: (value: LeaderboardEntry[]) => void;
+}
 
 
-export default function ROISimulator() {
+export default function ROISimulator({ leaderboard, setLeaderboard}: ROISimulatorProps) {
   const [results, setResults] = useState<SimulationResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [failureReason, setFailureReason] = useState<string | null>(null);
-  const [leaderboard, setLeaderboard] = useLocalStorage<LeaderboardEntry[]>('leaderboard', []);
   const { toast } = useToast();
 
   const form = useForm<ROIFormValues>({
@@ -94,80 +96,36 @@ export default function ROISimulator() {
     }
   }
 
-  const handleLeaderboardSelect = (entry: LeaderboardEntry) => {
-    form.setValue('name', entry.name);
-    form.setValue('aov', entry.aov, { shouldValidate: true });
-    form.setValue('budget', entry.budget, { shouldValidate: true });
-    form.setValue('sellerRoi', entry.sellerRoi, { shouldValidate: true });
-    form.setValue('roi1', entry.roiTargets[0]);
-    form.setValue('roi2', entry.roiTargets[1]);
-    form.setValue('roi3', entry.roiTargets[2]);
-    form.setValue('roi4', entry.roiTargets[3]);
-    toast({
-      title: 'Loaded from Leaderboard',
-      description: `Parameters for "${entry.name}" have been loaded into the form.`,
-    });
-  }
-
-  const handleLeaderboardDelete = (id: string) => {
-    setLeaderboard(leaderboard.filter(entry => entry.id !== id));
-    toast({
-      title: 'Entry Deleted',
-      description: `The entry has been removed from the leaderboard.`,
-    });
-  }
-
-
   return (
-    <Tabs defaultValue="simulator" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="simulator">Simulator</TabsTrigger>
-        <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-      </TabsList>
-      <TabsContent value="simulator" className="mt-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 flex flex-col gap-8">
-            <ROIInputForm form={form} onSubmit={runAndProcessSimulation} isLoading={isLoading}/>
-          </div>
-          <div className="lg:col-span-2">
-            {isLoading && !results && (
-                <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                        <p className="text-muted-foreground">Running simulation...</p>
-                    </div>
-                </div>
-            )}
-            {results && !isLoading && (
-              <div className="flex flex-col gap-8 animate-in fade-in duration-500">
-                <SummaryCard summary={results.summary} failureReason={failureReason} />
-              </div>
-            )}
-             {!isLoading && !results && (
-                <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
-                    <div className="text-center text-muted-foreground p-8">
-                        <BarChart className="mx-auto h-12 w-12 mb-4" />
-                        <h3 className="text-lg font-semibold">Ready to simulate?</h3>
-                        <p>Enter your AOV and ROI targets and click "Run Simulation" to see your projected results.</p>
-                    </div>
-                </div>
-            )}
-          </div>
-        </div>
-      </TabsContent>
-      <TabsContent value="leaderboard" className="mt-6">
-        {leaderboard.length > 0 ? (
-            <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect} onDelete={handleLeaderboardDelete} />
-        ) : (
-            <div className="flex items-center justify-center h-[400px] bg-card rounded-lg border shadow-lg">
-                <div className="text-center text-muted-foreground p-8">
-                    <BarChart className="mx-auto h-12 w-12 mb-4" />
-                    <h3 className="text-lg font-semibold">Leaderboard is Empty</h3>
-                    <p>Successful simulation runs will appear here.</p>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-1 flex flex-col gap-8">
+        <ROIInputForm form={form} onSubmit={runAndProcessSimulation} isLoading={isLoading}/>
+      </div>
+      <div className="lg:col-span-2">
+        {isLoading && !results && (
+            <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    <p className="text-muted-foreground">Running simulation...</p>
                 </div>
             </div>
         )}
-      </TabsContent>
-    </Tabs>
+        {results && !isLoading && (
+          <div className="flex flex-col gap-8 animate-in fade-in duration-500">
+            <SummaryCard summary={results.summary} failureReason={failureReason} />
+            <ResultsTable results={results.windows} />
+          </div>
+        )}
+         {!isLoading && !results && (
+            <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
+                <div className="text-center text-muted-foreground p-8">
+                    <BarChart className="mx-auto h-12 w-12 mb-4" />
+                    <h3 className="text-lg font-semibold">Ready to simulate?</h3>
+                    <p>Enter your AOV and ROI targets and click "Run Simulation" to see your projected results.</p>
+                </div>
+            </div>
+        )}
+      </div>
+    </div>
   );
 }
