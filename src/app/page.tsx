@@ -57,17 +57,12 @@ export default function Home() {
       case 'catalog':
         return <MultiDaySimulator />;
       default:
-        return <ROISimulator 
-                  setLeaderboard={setLeaderboard} 
-                  leaderboard={leaderboard}
-                  selectedEntry={selectedEntry}
-                  onEntryProcessed={handleEntryProcessed}
-                />;
+        return <MultiDaySimulator />;
     }
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
         <Sidebar side="left" variant="sidebar" collapsible="icon">
           <SidebarMenu className="flex-1">
             <SidebarMenuItem>
