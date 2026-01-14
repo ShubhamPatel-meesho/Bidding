@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, IndianRupee, Target, Percent, Cog } from 'lucide-react';
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 
 const formSchema = z.object({
   slRoi: z.coerce.number().positive({ message: "Must be positive" }),
@@ -31,7 +31,7 @@ export default function MultiDaySimulator() {
   const form = useForm<MultiDayFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      slRoi: 20, // Service Level ROI
+      slRoi: 20, // Stop-loss ROI
       initialTargetRoi: 15,
       initialDeliveredRoi: 20,
       dailyBudget: 300,
@@ -48,8 +48,11 @@ export default function MultiDaySimulator() {
     // Basic 2-day simulation stub
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate async work
     const stubResults = [
-        { day: 'Day 1', deliveredROI: 19.5, targetROI: 15.0, orders: 10, spend: 290, budgetUtilization: 0.97 },
-        { day: 'Day 2', deliveredROI: 19.8, targetROI: 15.2, orders: 11, spend: 295, budgetUtilization: 0.98 },
+        { day: 'Day 1', deliveredROI: 19.5, targetROI: 15.0, orders: 10, spend: 290, budgetUtilization: 0.97, gmv: 5655, clicks: 150, slRoi: data.slRoi },
+        { day: 'Day 2', deliveredROI: 19.8, targetROI: 15.2, orders: 11, spend: 295, budgetUtilization: 0.98, gmv: 5841, clicks: 160, slRoi: data.slRoi },
+        { day: 'Day 3', deliveredROI: 20.1, targetROI: 15.5, orders: 12, spend: 298, budgetUtilization: 0.99, gmv: 6000, clicks: 170, slRoi: data.slRoi },
+        { day: 'Day 4', deliveredROI: 19.9, targetROI: 15.4, orders: 11, spend: 296, budgetUtilization: 0.98, gmv: 5890, clicks: 165, slRoi: data.slRoi },
+        { day: 'Day 5', deliveredROI: 20.5, targetROI: 16.0, orders: 13, spend: 300, budgetUtilization: 1.00, gmv: 6150, clicks: 180, slRoi: data.slRoi },
     ];
     
     setResults(stubResults);
@@ -71,7 +74,7 @@ export default function MultiDaySimulator() {
                   control={form.control} name="slRoi"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Service Level ROI (SL ROI)</FormLabel>
+                      <FormLabel>Stop-loss ROI (SL ROI)</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -170,17 +173,21 @@ export default function MultiDaySimulator() {
                     <CardDescription>Day-over-day performance of the bidding algorithm.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div style={{ width: '100%', height: 350 }}>
+                    <div style={{ width: '100%', height: 450 }}>
                         <ResponsiveContainer>
-                            <RechartsBarChart data={results} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                             <ComposedChart data={results} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="day" />
-                                <YAxis />
+                                <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--primary))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
+                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" label={{ value: 'GMV / Clicks', angle: 90, position: 'insideRight' }} />
                                 <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))' }}/>
                                 <Legend />
-                                <Bar dataKey="deliveredROI" name="Delivered ROI" fill="hsl(var(--primary))" />
-                                <Bar dataKey="targetROI" name="Target ROI" fill="hsl(var(--primary) / 0.5)" />
-                            </RechartsBarChart>
+                                <Area yAxisId="right" type="monotone" dataKey="gmv" name="Catalog GMV" fill="hsl(var(--chart-2) / 0.3)" stroke="hsl(var(--chart-2))" />
+                                <Bar yAxisId="left" dataKey="deliveredROI" name="Day ROI" fill="hsl(var(--chart-1) / 0.7)" />
+                                <Line yAxisId="left" type="monotone" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} />
+                                <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
+                                <Line yAxisId="right" type="monotone" dataKey="clicks" name="Catalog Clicks" stroke="hsl(var(--chart-3))" />
+                            </ComposedChart>
                         </ResponsiveContainer>
                     </div>
                 </CardContent>

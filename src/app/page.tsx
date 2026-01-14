@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 type ActiveView = 'simulator' | 'leaderboard' | 'catalog';
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<ActiveView>('simulator');
+  const [activeView, setActiveView] = useState<ActiveView>('catalog');
   const [leaderboard, setLeaderboard] = useLocalStorage<LeaderboardEntry[]>('leaderboard', []);
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null);
 
