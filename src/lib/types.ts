@@ -1,3 +1,4 @@
+
 export type SimulationWindowResult = {
   name: string;
   targetROI: number;
@@ -73,6 +74,5 @@ export type TimeIntervalResult = {
   orders: number;
   gmv: number;
   spend: number;
+  dayCumulativeClicks: number;
 };
-
-    

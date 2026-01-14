@@ -243,7 +243,7 @@ export default function MultiDaySimulator() {
                                     label={{ value: 'Interval (30 mins)', position: 'insideBottom', offset: -5 }}
                                 />
                                 <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--primary))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
-                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" label={{ value: 'GMV', angle: 90, position: 'insideRight' }} />
+                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" />
                                 <Tooltip 
                                     contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))' }}
                                     labelFormatter={(label, payload) => `Day ${payload?.[0]?.payload.day}, Interval ${payload?.[0]?.payload.timestamp}`}
@@ -251,6 +251,7 @@ export default function MultiDaySimulator() {
                                 <Legend />
                                 <Area yAxisId="right" type="monotone" dataKey="gmv" name="Catalog GMV" fill="hsl(var(--chart-2) / 0.2)" stroke="hsl(var(--chart-2) / 0.5)" dot={false} />
                                 <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1) / 0.5)" />
+                                <Line yAxisId="right" type="monotone" dataKey="dayCumulativeClicks" name="Daily Clicks" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" dot={false} />
@@ -311,5 +312,3 @@ export default function MultiDaySimulator() {
     </div>
   );
 }
-
-    

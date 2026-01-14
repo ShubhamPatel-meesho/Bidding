@@ -1,7 +1,7 @@
 
 'use server';
 
-const BASE_PCVR = 0.025; // The pCVR for a "standard" campaign, increased from 0.015
+const BASE_PCVR = 0.015; // The pCVR for a "standard" campaign, reverted from 0.025
 const BASE_AOV = 300; // The AOV at which BASE_PCVR is applicable
 const BASELINE_ROI = 5; // A typical or average ROI target
 

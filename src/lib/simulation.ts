@@ -1,3 +1,4 @@
+
 import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
 
@@ -154,6 +155,7 @@ export async function runMultiDaySimulation(
   let deliveredRoi = initialDeliveredRoi; 
   let integralError = 0;
   let previousError = 0;
+  let orderCarryOver = 0; // Accumulator for fractional orders
 
   const totalIntervals = numDays * 24 * INTERVALS_PER_HOUR;
   
@@ -213,8 +215,13 @@ export async function runMultiDaySimulation(
     const clicks = Math.max(0, Math.min(maxIntervalClicks, affordableClicks));
 
     const spend = clicks * bid;
+    
+    // --- New Order Calculation Logic ---
     const actualCVR = pCvr * randomInRange(0.9, 1.1);
-    const orders = Math.floor(clicks * actualCVR);
+    const fractionalOrders = clicks * actualCVR + orderCarryOver;
+    const orders = Math.floor(fractionalOrders);
+    orderCarryOver = fractionalOrders - orders; // Keep the remainder for the next interval
+
     const gmv = orders * aov;
     
     // --- Update history for Delivered ROI calculation ---
@@ -254,6 +261,7 @@ export async function runMultiDaySimulation(
     const dayGmv = dayData.reduce((s, d) => s + d.gmv, 0) + gmv;
     const daySpend = dailySpend + spend;
     const dayROI = daySpend > 0 ? dayGmv / daySpend : 0;
+    const dayCumulativeClicks = dayData.reduce((s, d) => s + d.clicks, 0) + clicks;
     
     timeSeries.push({
       timestamp: intervalIndexInDay,
@@ -268,10 +276,9 @@ export async function runMultiDaySimulation(
       orders: orders,
       gmv: gmv,
       spend: spend,
+      dayCumulativeClicks: dayCumulativeClicks,
     });
   }
 
   return timeSeries;
 }
-
-    
