@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,6 +14,7 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 import type { TimeIntervalResult } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
 
 
 const formSchema = z.object({
@@ -36,6 +37,22 @@ const formatPercent = (value: number) => `${(value * 100).toFixed(0)}%`;
 export default function MultiDaySimulator() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<TimeIntervalResult[] | null>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoading) {
+      setProgress(0);
+      let step = 0;
+      timer = setInterval(() => {
+        step += 1;
+        setProgress(step);
+      }, 50); // This will fill the bar over ~5 seconds. Adjust as needed.
+    }
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isLoading]);
 
   const form = useForm<MultiDayFormValues>({
     resolver: zodResolver(formSchema),
@@ -176,12 +193,15 @@ export default function MultiDaySimulator() {
       
       <div className="w-full">
         {isLoading && (
-            <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                    <p className="text-muted-foreground">Running 5-day simulation...</p>
-                </div>
+          <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
+            <div className="w-full max-w-md p-8 text-center">
+              <p className="text-lg font-semibold mb-2">Running 5-day simulation...</p>
+              <p className="text-muted-foreground mb-4">
+                Please wait while we process the bidding algorithm across thousands of intervals.
+              </p>
+              <Progress value={progress} className="w-full" />
             </div>
+          </div>
         )}
         {results && !isLoading && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">

@@ -9,6 +9,9 @@ const HIGH_CLICKS_PER_HOUR = 200; // Max potential clicks for a top bid at peak 
 const HOURS_PER_WINDOW = 6;
 const INTERVALS_PER_HOUR = 2; // 30-minute intervals
 
+// --- Time-based click potential (per window) ---
+const clickPotentialByWindow = [0.4, 1.0, 0.9, 0.7]; // Corresponds to 0-6h, 6-12h, 12-18h, 18-24h
+
 // --- Time-based click potential based on the provided chart ---
 // This is now per 30-minute interval
 const clickPotentialByInterval = [
