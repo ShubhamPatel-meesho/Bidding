@@ -45,7 +45,7 @@ export default function MultiDaySimulator() {
     setIsLoading(true);
     setResults(null);
 
-    // Basic 2-day simulation stub
+    // Basic 5-day simulation stub
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate async work
     const stubResults = [
         { day: 'Day 1', deliveredROI: 19.5, targetROI: 15.0, orders: 10, spend: 290, budgetUtilization: 0.97, gmv: 5655, clicks: 150, slRoi: data.slRoi },
@@ -60,8 +60,7 @@ export default function MultiDaySimulator() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-1 flex flex-col gap-8">
+    <div className="flex flex-col gap-8">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Multi-Day Bidding Algorithm</CardTitle>
@@ -70,95 +69,95 @@ export default function MultiDaySimulator() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
-                <FormField
-                  control={form.control} name="slRoi"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Stop-loss ROI (SL ROI)</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="number" placeholder="20" {...field} className="pl-8" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control} name="dailyBudget"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Daily Catalog Budget</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="number" placeholder="300" {...field} className="pl-8" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control} name="initialTargetRoi"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Starting Target ROI</FormLabel>
-                       <FormControl><Input type="number" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base font-medium flex items-center gap-2"><Cog className="w-4 h-4" /> ROI Pacing PID</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-3 gap-4 pt-2">
-                        <FormField
-                        control={form.control} name="pacingP"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>P</FormLabel>
-                            <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        <FormField
-                        control={form.control} name="pacingI"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>I</FormLabel>
-                            <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        <FormField
-                        control={form.control} name="pacingD"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>D</FormLabel>
-                            <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    </CardContent>
-                </Card>
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+                    <FormField
+                      control={form.control} name="slRoi"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Stop-loss ROI</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input type="number" placeholder="20" {...field} className="pl-8" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control} name="dailyBudget"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Daily Budget</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input type="number" placeholder="300" {...field} className="pl-8" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control} name="initialTargetRoi"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Starting Target ROI</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Card className="col-span-full lg:col-span-2">
+                        <CardContent className="pt-6">
+                             <div className="grid grid-cols-3 gap-4">
+                                <FormField
+                                control={form.control} name="pacingP"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel className="flex items-center gap-2 text-sm"><Cog className="w-3 h-3" /> P</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control} name="pacingI"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>I</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control} name="pacingD"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>D</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                <Button type="submit" className="w-full lg:w-auto" disabled={isLoading}>
                   {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run 30-Day Simulation </>}
                 </Button>
               </form>
             </Form>
           </CardContent>
         </Card>
-      </div>
-      <div className="lg:col-span-2">
+      
+      <div className="w-full">
         {isLoading && (
-            <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
+            <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
                 <div className="flex flex-col items-center gap-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                     <p className="text-muted-foreground">Running 30-day simulation...</p>
@@ -173,7 +172,7 @@ export default function MultiDaySimulator() {
                     <CardDescription>Day-over-day performance of the bidding algorithm.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div style={{ width: '100%', height: 450 }}>
+                    <div className="h-[50vh] w-full">
                         <ResponsiveContainer>
                              <ComposedChart data={results} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -203,7 +202,7 @@ export default function MultiDaySimulator() {
           </div>
         )}
          {!isLoading && !results && (
-            <div className="flex items-center justify-center h-full min-h-[500px] bg-card rounded-lg border shadow-lg">
+            <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
                 <div className="text-center text-muted-foreground p-8">
                     <Cog className="mx-auto h-12 w-12 mb-4" />
                     <h3 className="text-lg font-semibold">Ready to run the multi-day simulation?</h3>
