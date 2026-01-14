@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -48,7 +49,7 @@ const formatPercent = (value: number) => `${(value * 100).toFixed(0)}%`;
 const CustomLegend = (props: any) => {
   const { payload } = props;
   const items = payload.map((entry: any) => {
-      const { dataKey, color, value } = entry;
+      const { dataKey, color } = entry;
       // Remap names for legend
       const nameMapping: { [key: string]: string } = {
           'dayCumulativeGmv': 'Catalog GMV',
@@ -146,7 +147,7 @@ export default function MultiDaySimulator() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 items-end">
                     <FormField
                       control={form.control} name="slRoi"
                       render={({ field }) => (
@@ -212,32 +213,26 @@ export default function MultiDaySimulator() {
                         </FormItem>
                       )}
                     />
-                     <Card className="col-span-full md:col-span-1">
-                        <CardContent className="pt-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control} name="basePCVR"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="flex items-center gap-1">Base pCVR</FormLabel>
-                                            <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.001" {...field} className="pl-8" /></div></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control} name="calibrationError"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="flex items-center gap-1">Calib. Error</FormLabel>
-                                            <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" {...field} className="pl-8" /></div></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <FormField
+                        control={form.control} name="basePCVR"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-1">Base pCVR</FormLabel>
+                                <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.001" {...field} className="pl-8" /></div></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control} name="calibrationError"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-1">Calib. Error</FormLabel>
+                                <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" {...field} className="pl-8" /></div></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card>
