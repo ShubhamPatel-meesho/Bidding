@@ -2,14 +2,14 @@ import { Target } from 'lucide-react';
 
 export default function Header() {
   return (
-    <header className="flex flex-col items-center text-center">
+    <header className="flex flex-col items-start text-left">
       <div className="flex items-center gap-4">
-        <Target className="w-12 h-12 text-primary" />
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-primary font-headline">
+        <Target className="w-8 h-8 text-primary" />
+        <h1 className="text-2xl font-bold tracking-tight text-primary font-headline">
           Bidding Simulator
         </h1>
       </div>
-      <p className="mt-2 text-lg text-muted-foreground max-w-2xl">
+      <p className="mt-1 text-sm text-muted-foreground">
         Deliver the maximum ROI, while spending the whole budget.
       </p>
     </header>

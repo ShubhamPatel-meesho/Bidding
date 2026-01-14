@@ -4,7 +4,7 @@
 import Header from '@/components/app/header';
 import ROISimulator from '@/components/app/roi-simulator';
 import Leaderboard from '@/components/app/leaderboard';
-import { Sidebar, SidebarProvider, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
+import { Sidebar, SidebarProvider, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
 import { useState } from 'react';
 import { LayoutGrid, BarChart, Trophy } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -16,6 +16,8 @@ type ActiveView = 'simulator' | 'leaderboard' | 'catalog';
 export default function Home() {
   const [activeView, setActiveView] = useState<ActiveView>('simulator');
   const [leaderboard, setLeaderboard] = useLocalStorage<LeaderboardEntry[]>('leaderboard', []);
+  const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null);
+
   const { toast } = useToast();
 
   const handleLeaderboardDelete = (id: string) => {
@@ -27,23 +29,28 @@ export default function Home() {
   };
 
   const handleLeaderboardSelect = (entry: LeaderboardEntry) => {
-    // This function will be passed to the ROISimulator, but the logic
-    // to set form values will live inside ROISimulator.
-    // For now, we just switch the view.
+    setSelectedEntry(entry);
     setActiveView('simulator');
-    // We'll need a way to pass the selected entry to the ROISimulator
-    // This will be handled in a future step.
-     toast({
+    toast({
       title: 'Loading Strategy...',
       description: `"${entry.name}" parameters have been loaded into the form.`,
     });
   };
 
+  const handleEntryProcessed = () => {
+    setSelectedEntry(null);
+  }
+
 
   const renderContent = () => {
     switch (activeView) {
       case 'simulator':
-        return <ROISimulator setLeaderboard={setLeaderboard} leaderboard={leaderboard} />;
+        return <ROISimulator 
+                  setLeaderboard={setLeaderboard} 
+                  leaderboard={leaderboard}
+                  selectedEntry={selectedEntry}
+                  onEntryProcessed={handleEntryProcessed}
+                />;
       case 'leaderboard':
         return <Leaderboard entries={leaderboard} onSelect={handleLeaderboardSelect} onDelete={handleLeaderboardDelete} />;
       case 'catalog':
@@ -57,7 +64,12 @@ export default function Home() {
           </div>
         );
       default:
-        return <ROISimulator setLeaderboard={setLeaderboard} leaderboard={leaderboard} />;
+        return <ROISimulator 
+                  setLeaderboard={setLeaderboard} 
+                  leaderboard={leaderboard}
+                  selectedEntry={selectedEntry}
+                  onEntryProcessed={handleEntryProcessed}
+                />;
     }
   }
 
@@ -87,8 +99,11 @@ export default function Home() {
         </Sidebar>
         <SidebarInset>
             <div className="min-h-screen flex flex-col bg-background text-foreground w-full">
-                <div className="p-4 sm:p-8 md:p-12 w-full max-w-7xl mx-auto">
-                    <Header />
+                <div className="flex items-center gap-4 border-b p-4">
+                  <SidebarTrigger />
+                  <Header />
+                </div>
+                <div className="p-4 sm:p-8 md:p-12 w-full max-w-7xl mx-auto flex-1">
                     <main className="mt-8">
                         {renderContent()}
                     </main>
