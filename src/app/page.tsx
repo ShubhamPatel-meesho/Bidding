@@ -4,7 +4,7 @@
 import Header from '@/components/app/header';
 import ROISimulator from '@/components/app/roi-simulator';
 import Leaderboard from '@/components/app/leaderboard';
-import { Sidebar, SidebarProvider, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
+import { Sidebar, SidebarProvider, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarFooter } from '@/components/ui/sidebar';
 import { useState } from 'react';
 import { LayoutGrid, BarChart, Trophy } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -76,7 +76,7 @@ export default function Home() {
   return (
     <SidebarProvider>
         <Sidebar side="left" variant="sidebar" collapsible="icon">
-          <SidebarMenu>
+          <SidebarMenu className="flex-1">
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => setActiveView('simulator')} isActive={activeView === 'simulator'} tooltip="Single day simulator">
                 <BarChart />
@@ -96,11 +96,13 @@ export default function Home() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
+          <SidebarFooter>
+              <SidebarTrigger />
+          </SidebarFooter>
         </Sidebar>
         <SidebarInset>
             <div className="min-h-screen flex flex-col bg-background text-foreground w-full">
                 <div className="flex items-center gap-4 border-b p-4">
-                  <SidebarTrigger />
                   <Header />
                 </div>
                 <div className="p-4 sm:p-8 md:p-12 w-full max-w-7xl mx-auto flex-1">
