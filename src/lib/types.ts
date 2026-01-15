@@ -1,4 +1,5 @@
 
+
 export type SimulationWindowResult = {
   name: string;
   targetROI: number;
@@ -91,4 +92,5 @@ export type MultiDayLeaderboardEntry = MultiDaySimulationParams & {
   name: string;
   finalDeliveredROI: number;
   finalBudgetUtilisation: number;
+  results: TimeIntervalResult[];
 };

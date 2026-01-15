@@ -131,6 +131,9 @@ export default function MultiDaySimulator() {
         basePCVR: selectedEntry.basePCVR * 100, // convert back to percentage for display
         calibrationError: selectedEntry.calibrationError * 100, // convert back to percentage for display
       });
+      if(selectedEntry.results) {
+          setResults(selectedEntry.results);
+      }
       setSelectedEntry(null);
     }
   }, [selectedEntry, form]);
@@ -155,29 +158,26 @@ export default function MultiDaySimulator() {
       const totalIntervals = data.numDays * 48;
       let processedIntervals = 0;
       
-      let result: IteratorResult<TimeIntervalResult | undefined, void> | null = null;
+      let result: IteratorResult<TimeIntervalResult | undefined, void> = { done: false, value: undefined };
 
       const processChunk = async () => {
         // Process a chunk of intervals to make rendering smoother
         const chunkSize = 48; // one day
         let chunkProcessed = 0;
         
-        while(chunkProcessed < chunkSize && processedIntervals < totalIntervals) {
+        while(chunkProcessed < chunkSize && !result.done) {
            result = await simulationGenerator.next();
            if (result.value) {
                 tempResults.push(result.value);
                 processedIntervals++;
            }
            chunkProcessed++;
-           if (result.done) {
-             break;
-           }
         }
         
         setResults([...tempResults]);
         setProgress((processedIntervals / totalIntervals) * 100);
         
-        if (result && !result.done) {
+        if (!result.done) {
             requestAnimationFrame(processChunk);
         } else {
             setIsLoading(false);
@@ -206,6 +206,7 @@ export default function MultiDaySimulator() {
         ...lastRunData,
         basePCVR: lastRunData.basePCVR / 100,
         calibrationError: lastRunData.calibrationError / 100,
+        results: results,
     };
     
     setLeaderboard(current => [newEntry, ...current].sort((a, b) => b.finalDeliveredROI - a.finalDeliveredROI).slice(0, 20));
@@ -470,7 +471,9 @@ export default function MultiDaySimulator() {
                                 <FormLabel>N</FormLabel>
                                 <UiTooltip>
                                   <TooltipTrigger asChild>
-                                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                    <button type="button">
+                                      <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                    </button>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Clicks for ROI calculation</p>
@@ -493,7 +496,9 @@ export default function MultiDaySimulator() {
                                 <FormLabel>K</FormLabel>
                                  <UiTooltip>
                                   <TooltipTrigger asChild>
-                                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                    <button type="button">
+                                      <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                    </button>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Clicks for PID update</p>
