@@ -2,6 +2,7 @@
 
 
 
+
 import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
 
@@ -194,6 +195,7 @@ export async function* runMultiDaySimulation(
   let integralError = 0;
   let previousError = 0;
   let orderCarryOver = 0;
+  let dailyErrorFactor = 1.0;
 
   const totalIntervals = numDays * 24 * INTERVALS_PER_HOUR;
   
@@ -205,6 +207,11 @@ export async function* runMultiDaySimulation(
     const intervalIndexInDay = i % (24 * INTERVALS_PER_HOUR);
 
     const isNewDay = intervalIndexInDay === 0;
+
+    if (isNewDay) {
+      // Set a new daily volatility factor at the start of each day
+      dailyErrorFactor = 1 + randomInRange(-calibrationError, calibrationError);
+    }
     
     const prevIntervalOfDay = (i > 0 && !isNewDay) ? lastIntervals[i-1] : null;
 
@@ -297,8 +304,7 @@ export async function* runMultiDaySimulation(
     clicksSinceLastBpUpdate += clicks;
     
     // Apply calibration error here to get the "actual" CVR for order calculation
-    const errorMultiplier = 1 + randomInRange(-calibrationError, calibrationError);
-    const actualCVR = pCvr * errorMultiplier;
+    const actualCVR = pCvr * dailyErrorFactor;
     
     const fractionalOrders = clicks * actualCVR + orderCarryOver;
     const orders = Math.floor(fractionalOrders);
@@ -375,3 +381,4 @@ export async function* runMultiDaySimulation(
     
 
     
+
