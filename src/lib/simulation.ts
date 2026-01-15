@@ -12,15 +12,42 @@ const HOURS_PER_WINDOW = 6;
 const INTERVALS_PER_HOUR = 2; // 30-minute intervals
 
 // --- Time-based click potential (per window) ---
+// This is now deprecated in favor of the more granular clickPotentialByInterval
 const clickPotentialByWindow = [0.4, 1.0, 0.9, 0.7]; // Corresponds to 0-6h, 6-12h, 12-18h, 18-24h
 
-// This is now per 30-minute interval within a day (48 intervals)
+// New granular click potential based on the provided graph.
+// Values are normalized against the peak of ~144.2M clicks at hour 13.
+const hourlyClickPotential = [
+    0.31, // Hour 0
+    0.18, // Hour 1
+    0.09, // Hour 2
+    0.07, // Hour 3
+    0.10, // Hour 4
+    0.24, // Hour 5
+    0.41, // Hour 6
+    0.54, // Hour 7
+    0.66, // Hour 8
+    0.78, // Hour 9
+    0.83, // Hour 10
+    0.87, // Hour 11
+    0.97, // Hour 12
+    1.00, // Hour 13 (Peak)
+    0.98, // Hour 14
+    0.87, // Hour 15
+    0.87, // Hour 16
+    0.89, // Hour 17
+    0.85, // Hour 18
+    0.78, // Hour 19
+    0.70, // Hour 20
+    0.62, // Hour 21
+    0.45, // Hour 22
+    0.35, // Hour 23
+];
+
+// This maps the hourly potential to each 30-minute interval within a day (48 intervals)
 const clickPotentialByInterval = Array.from({ length: 48 }, (_, i) => {
     const hour = Math.floor(i / INTERVALS_PER_HOUR);
-    if (hour < 6) return 0.4;
-    if (hour < 12) return 1.0;
-    if (hour < 18) return 0.9;
-    return 0.7;
+    return hourlyClickPotential[hour];
 });
 
 
@@ -296,6 +323,5 @@ export async function* runMultiDaySimulation(
     lastIntervals[i] = result;
     yield result;
   }
-  // yield undefined;
 }
     
