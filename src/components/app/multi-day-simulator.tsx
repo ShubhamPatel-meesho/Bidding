@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, IndianRupee, Target, Cog, HelpCircle, Percent, CalendarDays, Save, Trash2, Repeat, Trophy } from 'lucide-react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { TimeIntervalResult, MultiDayLeaderboardEntry } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -685,17 +685,14 @@ export default function MultiDaySimulator() {
                                     label={{ value: 'Interval (30 mins)', position: 'insideBottom', offset: -15 }}
                                 />
                                 <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
-                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" domain={[0,1]} tickFormatter={formatPercent}/>
                                 <Tooltip 
                                     content={<CustomChartTooltip />}
                                 />
                                 <Legend content={<CustomLegend />} wrapperStyle={{ bottom: 0 }} />
-                                <Area yAxisId="right" type="monotone" dataKey="dayBudgetUtilisation" name="Budget Utilisation" fill="hsl(var(--chart-2))" stroke="hsl(var(--chart-2))" dot={false} />
                                 <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1))" />
                                 <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--primary))" strokeDasharray="5 5" dot={false} />
-                                <Line yAxisId="right" type="monotone" dataKey="idealBudgetUtilisation" name="Ideal Utilisation" stroke="hsl(var(--accent))" strokeWidth={2} dot={false}/>
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
