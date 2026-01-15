@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -163,112 +162,255 @@ export default function MultiDaySimulator() {
 
   return (
     <div className="flex flex-col gap-8">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Multi-Day Bidding Algorithm</CardTitle>
-            <CardDescription>Configure the parameters for the ROI Pacing controller.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <FormField control={form.control} name="numDays" render={({ field }) => ( <FormItem> <FormLabel>Simulation Days</FormLabel> <FormControl><div className="relative"><CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" {...field} className="pl-8" /></div></FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="dailyBudget" render={({ field }) => ( <FormItem> <FormLabel>Daily Budget</FormLabel> <FormControl> <div className="relative"> <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input type="number" placeholder="300" {...field} className="pl-8" /> </div> </FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="aov" render={({ field }) => ( <FormItem> <FormLabel>Average Order Value</FormLabel> <FormControl> <div className="relative"> <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input type="number" {...field} className="pl-8" /> </div> </FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="slRoi" render={({ field }) => ( <FormItem> <FormLabel>Stop-loss ROI</FormLabel> <FormControl> <div className="relative"> <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input type="number" placeholder="20" {...field} className="pl-8" /> </div> </FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="initialTargetRoi" render={({ field }) => ( <FormItem> <FormLabel>Starting Target ROI</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="initialDeliveredRoi" render={({ field }) => ( <FormItem> <FormLabel>Starting Delivered ROI</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle>Multi-Day Bidding Algorithm</CardTitle>
+          <CardDescription>Configure the parameters for the ROI Pacing controller.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <FormField
+                  control={form.control}
+                  name="numDays"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Simulation Days</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input type="number" {...field} className="pl-8" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="dailyBudget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Daily Budget</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input type="number" placeholder="300" {...field} className="pl-8" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="aov"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Average Order Value</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input type="number" {...field} className="pl-8" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="slRoi"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Stop-loss ROI</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input type="number" placeholder="20" {...field} className="pl-8" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="initialTargetRoi"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Starting Target ROI</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="initialDeliveredRoi"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Starting Delivered ROI</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm font-medium mb-2">pCVR Configuration</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="basePCVR"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Base pCVR</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input type="number" step="0.01" {...field} className="pl-8" />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="calibrationError"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Calib. Error</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input type="number" step="1" {...field} className="pl-8" />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm font-medium mb-2">PID Controller Gains</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="pacingP"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>P (Proportional)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="pacingI"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>I (Integral)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="pacingD"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>D (Derivative)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
                     <TooltipProvider>
-                     <Card>
-                        <CardContent className="pt-6">
-                             <p className="text-sm font-medium mb-2">pCVR Configuration</p>
-                             <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="basePCVR" render={({ field }) => ( <FormItem> <FormLabel>Base pCVR</FormLabel> <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" {...field} className="pl-8" /></div></FormControl> <FormMessage /> </FormItem> )} />
-                                <FormField control={form.control} name="calibrationError" render={({ field }) => ( <FormItem> <FormLabel>Calib. Error</FormLabel> <FormControl><div className="relative"><Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" step="1" {...field} className="pl-8" /></div></FormControl> <FormMessage /> </FormItem> )} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                              <p className="text-sm font-medium mb-2">PID Controller Gains</p>
-                             <div className="grid grid-cols-3 gap-4">
-                                <FormField
-                                control={form.control} name="pacingP"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>P (Proportional)</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                                <FormField
-                                control={form.control} name="pacingI"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>I (Integral)</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                                <FormField
-                                control={form.control} name="pacingD"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>D (Derivative)</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardContent className="pt-6">
-                            <p className="text-sm font-medium mb-2">PID Windowing</p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control} name="nValue"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex items-center gap-1">
-                                                <FormLabel>N</FormLabel>
-                                                <UiTooltip><TooltipTrigger asChild><HelpCircle className="w-3 h-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p>Clicks for ROI calculation</p></TooltipContent></UiTooltip>
-                                            </div>
-                                            <FormControl><Input type="number" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control} name="kValue"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex items-center gap-1">
-                                                <FormLabel>K</FormLabel>
-                                                <UiTooltip><TooltipTrigger asChild><HelpCircle className="w-3 h-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p>Clicks for PID update</p></TooltipContent></UiTooltip>
-                                            </div>
-                                            <FormControl><Input type="number" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                      <p className="text-sm font-medium mb-2">PID Windowing</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="nValue"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center gap-1">
+                                <FormLabel>N</FormLabel>
+                                <UiTooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Clicks for ROI calculation</p>
+                                  </TooltipContent>
+                                </UiTooltip>
+                              </div>
+                              <FormControl>
+                                <Input type="number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="kValue"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center gap-1">
+                                <FormLabel>K</FormLabel>
+                                <UiTooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Clicks for PID update</p>
+                                  </TooltipContent>
+                                </UiTooltip>
+                              </div>
+                              <FormControl>
+                                <Input type="number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </TooltipProvider>
-                </div>
-                <Button type="submit" className="w-full lg:w-auto" disabled={isLoading}>
-                  {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run Simulation </>}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+                  </CardContent>
+                </Card>
+              </div>
+              <Button type="submit" className="w-full lg:w-auto" disabled={isLoading}>
+                {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run Simulation </>}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
       
       <div className="w-full">
         {isLoading && (
@@ -373,3 +515,4 @@ export default function MultiDaySimulator() {
   );
 }
 
+    
