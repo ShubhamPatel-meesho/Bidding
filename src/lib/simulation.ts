@@ -230,7 +230,7 @@ export async function* runMultiDaySimulation(
     if (clicksSinceLastBpUpdate >= bpKValue) {
         const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
         const bpAdjustment = bpP * bpError;
-        potentialBpTargetRoi = currentTargetRoi * (1 + bpAdjustment);
+        potentialBpTargetRoi = currentTargetRoi + bpAdjustment;
         clicksSinceLastBpUpdate = 0; // Will be reset after potential application
     }
     
@@ -239,7 +239,11 @@ export async function* runMultiDaySimulation(
     const useBP = modules.includes('bp');
     let activeModule: 'RP' | 'BP' | 'None' = 'None';
     
-    if (useRP && useBP) {
+    if (useRP && !useBP) {
+        activeModule = 'RP';
+    } else if (!useRP && useBP) {
+        activeModule = 'BP';
+    } else if (useRP && useBP) {
         if (deliveredRoi <= slRoi) {
             activeModule = 'RP';
         } else if (dayBudgetUtilisation > idealBudgetUtilisation) { // Overspending
@@ -247,10 +251,6 @@ export async function* runMultiDaySimulation(
         } else { // Underspending and ROI is fine
             activeModule = 'RP';
         }
-    } else if (useRP) {
-        activeModule = 'RP';
-    } else if (useBP) {
-        activeModule = 'BP';
     }
 
     // Apply the update only if the correct module is active at the time of update
