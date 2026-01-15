@@ -4,33 +4,33 @@
 const BASE_AOV = 300; // The AOV at which BASE_PCVR is applicable
 const BASELINE_ROI = 5; // A typical or average ROI target
 
-// Based on the ad_clicks graph, modeling purchase intent throughout the day.
-// Higher values indicate peak conversion intent, aligned with peak click times.
+// Based on the ObyC (Orders by Clicks) graph, modeling conversion rate throughout the day.
+// Higher values indicate peak conversion times. These are normalized around an average of ~0.18.
 const pCVR_MODIFIER_BY_HOUR = [
-  0.85, // 0-6h: Lower intent
-  0.85,
-  0.85,
-  0.85,
-  0.85,
-  0.85,
-  1.15, // 6-12h: Peak intent
-  1.15,
-  1.15,
-  1.15,
-  1.15,
-  1.15,
-  1.05, // 12-18h: Still high, but dropping
-  1.05,
-  1.05,
-  1.05,
-  1.05,
-  1.05,
-  0.95, // 18-24h: Dropping off
-  0.95,
-  0.95,
-  0.95,
-  0.95,
-  0.95,
+  0.83, // 0h: 0.15
+  0.83, // 1h: 0.15
+  0.83, // 2h: 0.15
+  0.83, // 3h: 0.15
+  0.83, // 4h: 0.15
+  0.89, // 5h: 0.16
+  1.00, // 6h: 0.18
+  1.22, // 7h: 0.22
+  1.28, // 8h: 0.23 (Peak)
+  1.22, // 9h: 0.22
+  1.22, // 10h: 0.22
+  1.17, // 11h: 0.21
+  1.11, // 12h: 0.20
+  1.06, // 13h: 0.19
+  1.00, // 14h: 0.18
+  0.94, // 15h: 0.17
+  0.94, // 16h: 0.17
+  0.94, // 17h: 0.17
+  0.94, // 18h: 0.17
+  0.94, // 19h: 0.17
+  0.94, // 20h: 0.17
+  0.89, // 21h: 0.16
+  0.89, // 22h: 0.16
+  0.94, // 23h: 0.17
 ];
 
 
