@@ -45,6 +45,7 @@ const formSchema = z.object({
   aov: z.coerce.number().positive({ message: "AOV must be positive" }),
   basePCVR: z.coerce.number().min(0, { message: "Must be non-negative" }),
   overallError: z.coerce.number(), // Can be positive or negative
+  dayVolatility: z.coerce.number().min(0).max(100, { message: "Must be between 0 and 100" }),
   volatility: z.coerce.number().min(0).max(100, { message: "Must be between 0 and 100" }),
   pacingP: z.coerce.number().min(0),
   pacingI: z.coerce.number().min(0),
@@ -174,6 +175,7 @@ export default function MultiDaySimulator() {
         name: selectedEntry.name || `Clone of ${selectedEntry.id.substring(0,4)}`,
         basePCVR: selectedEntry.basePCVR * 100, // convert back to percentage for display
         overallError: selectedEntry.overallError * 100, // convert back to percentage for display
+        dayVolatility: selectedEntry.dayVolatility * 100,
         volatility: selectedEntry.volatility * 100, // convert back to percentage for display
         bpP: selectedEntry.bpP ?? 20,
         modules: selectedEntry.modules ?? ['rp', 'bp'],
@@ -199,6 +201,7 @@ export default function MultiDaySimulator() {
         ...data,
         basePCVR: data.basePCVR / 100, // Convert from % to decimal
         overallError: data.overallError / 100, // Convert from % to decimal
+        dayVolatility: data.dayVolatility / 100,
         volatility: data.volatility / 100, // Convert from % to decimal
       };
       
@@ -277,6 +280,7 @@ export default function MultiDaySimulator() {
         results: results,
         basePCVR: lastRunData.basePCVR / 100,
         overallError: lastRunData.overallError / 100,
+        dayVolatility: lastRunData.dayVolatility / 100,
         volatility: lastRunData.volatility / 100,
     };
     
@@ -501,7 +505,7 @@ export default function MultiDaySimulator() {
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-sm font-medium mb-2">pCVR Configuration</p>
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-4">
                        <FormField
                         control={form.control}
                         name="basePCVR"
@@ -518,7 +522,7 @@ export default function MultiDaySimulator() {
                           </FormItem>
                         )}
                       />
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <FormField
                           control={form.control}
                           name="overallError"
@@ -535,12 +539,28 @@ export default function MultiDaySimulator() {
                             </FormItem>
                           )}
                         />
+                         <FormField
+                          control={form.control}
+                          name="dayVolatility"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Day-on-Day Volatility</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  <Input type="number" step="1" {...field} className="pl-8" />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField
                           control={form.control}
                           name="volatility"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Volatility</FormLabel>
+                              <FormLabel>Interval Volatility</FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

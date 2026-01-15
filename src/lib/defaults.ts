@@ -8,6 +8,7 @@ export const MULTI_DAY_SIMULATOR_DEFAULTS = {
   aov: 300,
   basePCVR: 1, // Given as a percentage
   overallError: -20, // Given as a percentage
+  dayVolatility: 10, // Given as a percentage
   volatility: 20, // Given as a percentage
   pacingP: 0.2,
   pacingI: 0,

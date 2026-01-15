@@ -4,6 +4,7 @@
 
 
 
+
 import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
 
@@ -169,7 +170,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 export async function* runMultiDaySimulation(
     params: MultiDaySimulationParams
 ): AsyncGenerator<TimeIntervalResult | undefined, void, undefined> {
-  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, bpP, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, bpKValue, basePCVR, overallError, volatility, modules } = params;
+  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, bpP, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, bpKValue, basePCVR, overallError, dayVolatility, volatility, modules } = params;
 
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
   
@@ -203,6 +204,7 @@ export async function* runMultiDaySimulation(
   const totalIntervals = numDays * 24 * INTERVALS_PER_HOUR;
   
   let lastIntervals: {[key: number]: TimeIntervalResult} = {};
+  let dailyErrorFactor = 1;
 
   for (let i = 0; i < totalIntervals; i++) {
     const day = Math.floor(i / (24 * INTERVALS_PER_HOUR)) + 1;
@@ -210,6 +212,12 @@ export async function* runMultiDaySimulation(
     const intervalIndexInDay = i % (24 * INTERVALS_PER_HOUR);
 
     const isNewDay = intervalIndexInDay === 0;
+
+    if (isNewDay) {
+      // Generate a new error factor for the day
+      dailyErrorFactor = 1 + randomInRange(-dayVolatility, dayVolatility);
+    }
+
 
     const prevIntervalOfDay = (i > 0 && !isNewDay) ? lastIntervals[i-1] : null;
 
@@ -278,10 +286,6 @@ export async function* runMultiDaySimulation(
     const pCvrForBidding = biddingPCVRResponse.adjustedPCVR;
     const bid = pCvrForBidding * (aov / currentTargetRoi);
     
-    // 2. Get the "true" pCVR for order calculation, using the hidden trueBasePCVR.
-    const truePCVRResponse = await getAdjustedPCVR(currentTargetRoi, hour, trueBasePCVR);
-    const pCvrForOrders = truePCVRResponse.adjustedPCVR;
-
     // 3. Simulate clicks based on the bid.
     let clickAttainmentFactor = 0;
     if (bid >= BID_THROTTLE_THRESHOLD && remainingDailyBudget > 0) {
@@ -309,8 +313,12 @@ export async function* runMultiDaySimulation(
     clicksSinceLastBpUpdate += clicks;
     
     // 4. Calculate actual orders using the true pCVR and volatility.
-    const volatilityMultiplier = 1 + randomInRange(-volatility, volatility);
-    const actualCVR = pCvrForOrders * volatilityMultiplier;
+    // Start with the clean pCVR for this interval
+    const cleanPCVRResponse = await getAdjustedPCVR(currentTargetRoi, hour, trueBasePCVR);
+    
+    // Apply daily and interval volatility
+    const intervalVolatilityMultiplier = 1 + randomInRange(-volatility, volatility);
+    const actualCVR = cleanPCVRResponse.adjustedPCVR * dailyErrorFactor * intervalVolatilityMultiplier;
     
     const fractionalOrders = clicks * actualCVR + orderCarryOver;
     const orders = Math.floor(fractionalOrders);
