@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,8 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Target, Cog, HelpCircle, Percent, CalendarDays, Save, Trash2, Repeat, Trophy } from 'lucide-react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Sparkles, IndianRupee, Target, Cog, HelpCircle, Percent, CalendarDays, Save, Trash2, Repeat, Trophy, Square, AreaChart } from 'lucide-react';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import type { TimeIntervalResult, MultiDayLeaderboardEntry } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -33,6 +33,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { MULTI_DAY_SIMULATOR_DEFAULTS } from '@/lib/defaults';
 
 
 const formSchema = z.object({
@@ -61,6 +62,11 @@ type MultiDayFormValues = z.infer<typeof formSchema>;
 
 const formatRoi = (value: number) => value.toFixed(2);
 const formatCurrency = (value: number) => `₹${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const formatYAxisCurrency = (value: number) => {
+    if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+    if (value >= 1000) return `₹${(value / 1000).toFixed(0)}k`;
+    return `₹${value}`;
+};
 const formatPercent = (value: number) => `${(value * 100).toFixed(0)}%`;
 const formatSmallPercent = (value: number) => `${(value * 100).toFixed(2)}%`;
 
@@ -73,8 +79,7 @@ const modules = [
 const CustomLegend = (props: any) => {
   const { payload } = props;
   const items = payload.map((entry: any) => {
-      const { dataKey, color } = entry;
-      // Remap names for legend
+      const { dataKey, color, type } = entry;
       const nameMapping: { [key: string]: string } = {
           'dayCumulativeGmv': 'Catalog GMV',
           'dayROI': 'Day ROI',
@@ -87,14 +92,18 @@ const CustomLegend = (props: any) => {
       };
       const finalName = nameMapping[dataKey];
       if (!finalName) return null;
-      return { name: finalName, color };
+      return { name: finalName, color, type };
   }).filter(Boolean);
 
   return (
     <div className="flex items-center justify-center gap-4 flex-wrap">
       {items.map((item) => (
         <div key={item.name} className="flex items-center gap-2 text-sm">
-          <span className="w-2.5 h-2.5" style={{ backgroundColor: item.color }}></span>
+          {item.type === 'line' ? (
+              <div className="w-2.5 h-px" style={{backgroundColor: item.color}}></div>
+          ) : (
+             <span className="w-2.5 h-2.5" style={{ backgroundColor: item.color }}></span>
+          )}
           <span>{item.name}</span>
         </div>
       ))}
@@ -109,9 +118,14 @@ export default function MultiDaySimulator() {
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
+  const simulationStateRef = useRef<{ running: boolean }>({ running: false });
 
   useEffect(() => {
     setIsMounted(true);
+    // Cleanup on unmount
+    return () => {
+      simulationStateRef.current.running = false;
+    }
   }, []);
 
   const [leaderboard, setLeaderboard] = useLocalStorage<MultiDayLeaderboardEntry[]>('multiday-leaderboard', []);
@@ -121,23 +135,8 @@ export default function MultiDaySimulator() {
   const form = useForm<MultiDayFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: `PID Strategy #${leaderboard.length + 1}`,
-      slRoi: 10, // Stop-loss ROI
-      initialTargetRoi: 15,
-      initialDeliveredRoi: 20,
-      dailyBudget: 300,
-      aov: 300,
-      basePCVR: 1, // 1%
-      calibrationError: 20, // 20%
-      pacingP: 0.2,
-      pacingI: 0,
-      pacingD: 0,
-      bpP: 20,
-      nValue: 3000,
-      kValue: 600,
-      bpKValue: 75,
-      numDays: 3,
-      modules: ['rp', 'bp'],
+      ...MULTI_DAY_SIMULATOR_DEFAULTS,
+      name: `${MULTI_DAY_SIMULATOR_DEFAULTS.name} #${leaderboard.length + 1}`
     },
   });
 
@@ -164,6 +163,7 @@ export default function MultiDaySimulator() {
     setResults([]);
     setProgress(0);
     setLastRunData(data);
+    simulationStateRef.current.running = true;
     
     // Using a timeout allows the UI to update to show the loading state.
     setTimeout(async () => {
@@ -180,6 +180,16 @@ export default function MultiDaySimulator() {
       let processedIntervals = 0;
       
       const processChunk = async () => {
+        if (!simulationStateRef.current.running) {
+          setIsLoading(false);
+          toast({
+            variant: 'destructive',
+            title: "Simulation Stopped",
+            description: "The simulation was cancelled by the user."
+          });
+          return;
+        }
+
         let result: IteratorResult<TimeIntervalResult | undefined, void> | undefined;
 
         try {
@@ -187,6 +197,7 @@ export default function MultiDaySimulator() {
         } catch (error) {
           console.error("Simulation error:", error);
           setIsLoading(false);
+          simulationStateRef.current.running = false;
           toast({
             variant: "destructive",
             title: "Simulation Failed",
@@ -206,6 +217,7 @@ export default function MultiDaySimulator() {
             requestAnimationFrame(processChunk);
         } else {
             setIsLoading(false);
+            simulationStateRef.current.running = false;
             toast({
               title: "Simulation Complete",
               description: `Finished running ${data.numDays}-day simulation.`
@@ -216,6 +228,10 @@ export default function MultiDaySimulator() {
       requestAnimationFrame(processChunk);
 
     }, 10);
+  }
+
+  const stopSimulation = () => {
+    simulationStateRef.current.running = false;
   }
 
   const handleSaveRun = () => {
@@ -667,9 +683,16 @@ export default function MultiDaySimulator() {
                 </Card>
               )}
 
-              <Button type="submit" className="w-full lg:w-auto" disabled={isLoading}>
-                {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run Simulation </>}
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button type="submit" className="w-full lg:w-auto" disabled={isLoading}>
+                  <Sparkles className="mr-2 h-4 w-4" /> Run Simulation
+                </Button>
+                {isLoading && (
+                  <Button type="button" variant="destructive" onClick={stopSimulation}>
+                    <Square className="mr-2 h-4 w-4" /> Stop Simulation
+                  </Button>
+                )}
+              </div>
             </form>
           </Form>
         </CardContent>
@@ -713,10 +736,18 @@ export default function MultiDaySimulator() {
                                     label={{ value: 'Interval (30 mins)', position: 'insideBottom', offset: -15 }}
                                 />
                                 <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
+                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" tickFormatter={formatYAxisCurrency} label={{ value: 'GMV', angle: 90, position: 'insideRight' }}/>
                                 <Tooltip 
                                     content={<CustomChartTooltip />}
                                 />
                                 <Legend content={<CustomLegend />} wrapperStyle={{ bottom: 0 }} />
+                                <defs>
+                                  <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
+                                  </linearGradient>
+                                </defs>
+                                <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" stroke="hsl(var(--chart-2))" fill="url(#colorGmv)" />
                                 <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1))" />
                                 <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false}/>
