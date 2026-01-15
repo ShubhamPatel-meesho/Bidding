@@ -84,3 +84,10 @@ export type TimeIntervalResult = {
   dayCumulativeSpend: number;
   dayBudgetUtilisation: number;
 };
+
+export type MultiDayLeaderboardEntry = MultiDaySimulationParams & {
+  id: string;
+  name: string;
+  finalDeliveredROI: number;
+  finalBudgetUtilisation: number;
+};

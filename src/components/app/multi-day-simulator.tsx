@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,22 +10,32 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, IndianRupee, Target, Cog, HelpCircle, Percent, CalendarDays } from 'lucide-react';
+import { Sparkles, IndianRupee, Target, Cog, HelpCircle, Percent, CalendarDays, Save, Trash2, Repeat, Trophy } from 'lucide-react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
-import type { TimeIntervalResult } from '@/lib/types';
+import type { TimeIntervalResult, MultiDayLeaderboardEntry } from '@/lib/types';
 import { runMultiDaySimulation } from '@/lib/simulation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { CustomChartTooltip } from './chart-tooltip';
+import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useToast } from "@/hooks/use-toast";
 import {
-  Tooltip as UiTooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 
 const formSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   slRoi: z.coerce.number().positive({ message: "Must be positive" }),
   initialTargetRoi: z.coerce.number().positive({ message: "Must be positive" }),
   initialDeliveredRoi: z.coerce.number().positive({ message: "Must be positive" }),
@@ -80,10 +90,16 @@ export default function MultiDaySimulator() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<TimeIntervalResult[] | null>(null);
   const [progress, setProgress] = useState(0);
+  const { toast } = useToast();
+
+  const [leaderboard, setLeaderboard] = useLocalStorage<MultiDayLeaderboardEntry[]>('multiday-leaderboard', []);
+  const [lastRunData, setLastRunData] = useState<MultiDayFormValues | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<MultiDayLeaderboardEntry | null>(null);
 
   const form = useForm<MultiDayFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: `PID Strategy #${leaderboard.length + 1}`,
       slRoi: 20, // Stop-loss ROI
       initialTargetRoi: 15,
       initialDeliveredRoi: 20,
@@ -100,42 +116,67 @@ export default function MultiDaySimulator() {
     },
   });
 
+  useEffect(() => {
+    if (selectedEntry) {
+      form.reset({
+        ...selectedEntry,
+        name: selectedEntry.name || `Clone of ${selectedEntry.id.substring(0,4)}`,
+        basePCVR: selectedEntry.basePCVR * 100, // convert back to percentage for display
+        calibrationError: selectedEntry.calibrationError * 100, // convert back to percentage for display
+      });
+      setSelectedEntry(null);
+    }
+  }, [selectedEntry, form]);
+
   const runAndProcessSimulation: SubmitHandler<MultiDayFormValues> = async (data) => {
     setIsLoading(true);
     setResults([]);
     setProgress(0);
+    setLastRunData(data);
     
     // Using a timeout allows the UI to update to show the loading state.
     setTimeout(async () => {
-      const simulationGenerator = runMultiDaySimulation({
-          ...data,
-          basePCVR: data.basePCVR / 100, // Convert from % to decimal
-          calibrationError: data.calibrationError / 100, // Convert from % to decimal
-      });
+      const simulationParams = {
+        ...data,
+        basePCVR: data.basePCVR / 100, // Convert from % to decimal
+        calibrationError: data.calibrationError / 100, // Convert from % to decimal
+      };
+      
+      const simulationGenerator = runMultiDaySimulation(simulationParams);
 
       let tempResults: TimeIntervalResult[] = [];
       const totalIntervals = data.numDays * 48;
       let processedIntervals = 0;
 
       const processChunk = async () => {
-        let result: IteratorResult<TimeIntervalResult, void>;
-        for (let i = 0; i < 48; i++) { // Process one day at a time for smoother updates
-            result = await simulationGenerator.next();
-            if (!result.done) {
+        let result: IteratorResult<TimeIntervalResult | undefined, void>;
+        // Process a chunk of intervals to make rendering smoother
+        const chunkSize = 48; // one day
+        let chunkProcessed = 0;
+        
+        while(chunkProcessed < chunkSize && processedIntervals < totalIntervals) {
+           result = await simulationGenerator.next();
+           if (result.value) {
                 tempResults.push(result.value);
                 processedIntervals++;
-            } else {
-                break;
-            }
+           }
+           chunkProcessed++;
+           if (result.done) {
+             break;
+           }
         }
-
+        
         setResults([...tempResults]);
         setProgress((processedIntervals / totalIntervals) * 100);
 
-        if (processedIntervals < totalIntervals && !result.done) {
+        if (!result!.done) {
             requestAnimationFrame(processChunk);
         } else {
             setIsLoading(false);
+            toast({
+              title: "Simulation Complete",
+              description: `Finished running ${data.numDays}-day simulation.`
+            })
         }
       };
       
@@ -144,21 +185,62 @@ export default function MultiDaySimulator() {
     }, 10);
   }
 
+  const handleSaveRun = () => {
+    if (!lastRunData || !results || results.length === 0) return;
+
+    const finalInterval = results[results.length - 1];
+    
+    const newEntry: MultiDayLeaderboardEntry = {
+        id: new Date().toISOString(),
+        name: lastRunData.name,
+        finalDeliveredROI: finalInterval.deliveredROI,
+        finalBudgetUtilisation: finalInterval.dayBudgetUtilisation, // This is for the last day
+        ...lastRunData,
+        basePCVR: lastRunData.basePCVR / 100,
+        calibrationError: lastRunData.calibrationError / 100,
+    };
+    
+    setLeaderboard(current => [newEntry, ...current].slice(0, 20));
+    toast({
+      title: "Run Saved!",
+      description: `"${lastRunData.name}" has been saved.`
+    });
+  }
+
+  const handleLeaderboardSelect = (entry: MultiDayLeaderboardEntry) => {
+    setSelectedEntry(entry);
+    toast({
+      title: 'Loading Strategy...',
+      description: `"${entry.name}" parameters have been loaded into the form.`,
+    });
+  };
+
+  const handleLeaderboardDelete = (id: string) => {
+    setLeaderboard(leaderboard.filter(entry => entry.id !== id));
+    toast({
+      title: 'Entry Deleted',
+      description: `The entry has been removed.`,
+    });
+  };
+
   const dailyTotals = useMemo(() => {
-    if (!results) return [];
-    const totals: { [key: number]: { day: number; spend: number; gmv: number; clicks: number; orders: number; weightedTargetROI: number, totalClicksForWeight: number } } = {};
-    results.forEach(r => {
+    if (!results || results.length === 0) return [];
+    const totals: { [key: number]: { day: number; spend: number; gmv: number; clicks: number; orders: number; weightedTargetROI: number, totalClicksForWeight: number, dayGmv: number } } = {};
+    
+    results.forEach((r, index) => {
+        const isNewDay = index === 0 || r.day !== results[index - 1].day;
         if (!totals[r.day]) {
-            totals[r.day] = { day: r.day, spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0 };
+            totals[r.day] = { day: r.day, spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0, dayGmv: 0 };
         }
         const dayTotal = totals[r.day];
         dayTotal.spend += r.spend;
-        dayTotal.gmv += r.gmv;
         dayTotal.clicks += r.clicks;
         dayTotal.orders += r.orders;
         dayTotal.weightedTargetROI += r.targetROI * r.clicks;
         dayTotal.totalClicksForWeight += r.clicks;
+        dayTotal.dayGmv += r.gmv;
     });
+
     return Object.values(totals);
   }, [results]);
 
@@ -172,6 +254,22 @@ export default function MultiDaySimulator() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
+               <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Run Name</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Trophy className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input placeholder="My Winning Strategy" {...field} className="pl-8" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <FormField
                   control={form.control}
@@ -277,8 +375,8 @@ export default function MultiDaySimulator() {
                             <FormLabel>Base pCVR</FormLabel>
                             <FormControl>
                               <div className="relative">
-                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input type="number" step="0.01" {...field} className="pl-8" />
+                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -293,8 +391,8 @@ export default function MultiDaySimulator() {
                             <FormLabel>Calib. Error</FormLabel>
                             <FormControl>
                                <div className="relative">
-                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input type="number" step="1" {...field} className="pl-8" />
+                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                </div>
                             </FormControl>
                             <FormMessage />
@@ -362,14 +460,14 @@ export default function MultiDaySimulator() {
                             <FormItem>
                               <div className="flex items-center gap-1">
                                 <FormLabel>N</FormLabel>
-                                <Tooltip>
+                                <UiTooltip>
                                   <TooltipTrigger asChild>
-                                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                      <HelpCircle className="w-3 h-3 text-muted-foreground" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Clicks for ROI calculation</p>
                                   </TooltipContent>
-                                </Tooltip>
+                                </UiTooltip>
                               </div>
                               <FormControl>
                                 <Input type="number" {...field} />
@@ -385,14 +483,14 @@ export default function MultiDaySimulator() {
                             <FormItem>
                                <div className="flex items-center gap-1">
                                 <FormLabel>K</FormLabel>
-                                <Tooltip>
+                                <UiTooltip>
                                   <TooltipTrigger asChild>
                                     <HelpCircle className="w-3 h-3 text-muted-foreground" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Clicks for PID update</p>
                                   </TooltipContent>
-                                </Tooltip>
+                                </UiTooltip>
                               </div>
                               <FormControl>
                                 <Input type="number" {...field} />
@@ -428,6 +526,34 @@ export default function MultiDaySimulator() {
         )}
         {results && results.length > 0 && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">
+             {!isLoading && lastRunData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Save Run</CardTitle>
+                  <CardDescription>Save the parameters and results of this simulation run.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                     <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem className="flex-grow">
+                            <FormLabel className="sr-only">Run Name</FormLabel>
+                            <FormControl>
+                                <Input placeholder="My Winning Strategy" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    <Button onClick={handleSaveRun}>
+                      <Save className="mr-2 h-4 w-4" /> Save Run
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <Card>
                 <CardHeader>
                     <CardTitle>{form.getValues('numDays')}-Day Performance</CardTitle>
@@ -475,13 +601,13 @@ export default function MultiDaySimulator() {
                                 <TableHead className="text-right">Orders</TableHead>
                                 <TableHead className="text-right">Clicks</TableHead>
                                 <TableHead className="text-right">Spends</TableHead>
-                                <TableHead className="text-right">Budget</TableHead>
+                                <TableHead className="text-right">GMV</TableHead>
                                 <TableHead className="text-right">Budget Utilisation</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {dailyTotals.map((day, index) => {
-                                const deliveredROI = day.spend > 0 ? day.gmv / day.spend : 0;
+                                const deliveredROI = day.spend > 0 ? day.dayGmv / day.spend : 0;
                                 const budgetUtilisation = form.getValues('dailyBudget') > 0 ? day.spend / form.getValues('dailyBudget') : 0;
                                 const avgTargetROI = day.totalClicksForWeight > 0 ? day.weightedTargetROI / day.totalClicksForWeight : 0;
                                 return (
@@ -492,7 +618,7 @@ export default function MultiDaySimulator() {
                                         <TableCell className="text-right">{day.orders.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{day.clicks.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.spend)}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(form.getValues('dailyBudget'))}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(day.dayGmv)}</TableCell>
                                         <TableCell className="text-right">{formatPercent(budgetUtilisation)}</TableCell>
                                     </TableRow>
                                 )
@@ -504,6 +630,7 @@ export default function MultiDaySimulator() {
           </div>
         )}
          {!isLoading && (!results || results.length === 0) && (
+          <div className="flex flex-col gap-8">
             <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
                 <div className="text-center text-muted-foreground p-8">
                     <Cog className="mx-auto h-12 w-12 mb-4" />
@@ -511,11 +638,71 @@ export default function MultiDaySimulator() {
                     <p>Configure your algorithm parameters and click "Run" to begin.</p>
                 </div>
             </div>
+            {leaderboard.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Saved Runs</CardTitle>
+                  <CardDescription>Load a previously saved simulation run.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Days</TableHead>
+                        <TableHead>SL ROI</TableHead>
+                        <TableHead className="text-right">Final ROI</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaderboard.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell className="font-medium">{entry.name}</TableCell>
+                          <TableCell>{entry.numDays}</TableCell>
+                          <TableCell>{entry.slRoi}x</TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums">{formatRoi(entry.finalDeliveredROI)}</TableCell>
+                          <TableCell className="text-right">
+                             <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleLeaderboardSelect(entry)}
+                              >
+                                <Repeat className="mr-2 h-4 w-4" />
+                                Load
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className='h-9 w-9'>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete the "{entry.name}" run.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleLeaderboardDelete(entry.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 }
-
-    
-    

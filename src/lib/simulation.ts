@@ -141,7 +141,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 // --- New Multi-Day Simulator ---
 export async function* runMultiDaySimulation(
     params: MultiDaySimulationParams
-): AsyncGenerator<TimeIntervalResult, void, TimeIntervalResult | undefined> {
+): AsyncGenerator<TimeIntervalResult | undefined, void, undefined> {
   const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, basePCVR, calibrationError } = params;
 
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
