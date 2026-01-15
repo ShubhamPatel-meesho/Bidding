@@ -33,11 +33,9 @@ const pCVR_MODIFIER_BY_HOUR = [
 ];
 
 
-// Helper function to generate a random number within a given range
-const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
 // The pCVR is adjusted based on AOV and the aggressiveness of the Target ROI.
-export async function getAdjustedPCVR(targetROI: number, aov: number, hour: number, basePCVR: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
+// This function calculates the "clean" or "predicted" pCVR without calibration error.
+export async function getAdjustedPCVR(targetROI: number, hour: number, basePCVR: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
   try {
     // 1. Apply a subtle ROI target bias using a logarithmic scale for diminishing returns
     const roiRatio = targetROI / BASELINE_ROI;

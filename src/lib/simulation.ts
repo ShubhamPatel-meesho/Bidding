@@ -1,6 +1,7 @@
 
 
 
+
 import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
 
@@ -67,7 +68,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
     const hourForWindow = i * HOURS_PER_WINDOW;
 
     // 1. Get Contextual pCVR
-    const pCVRResponse = await getAdjustedPCVR(targetROI, aov, hourForWindow, 0.015); // Using defaults for single day sim
+    const pCVRResponse = await getAdjustedPCVR(targetROI, hourForWindow, 0.015); // Using defaults for single day sim
     let contextualPCVR: number;
     if ('error' in pCVRResponse) {
         hasError = true;
@@ -109,7 +110,10 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
         }
     }
 
-    const actualCVR = contextualPCVR * randomInRange(0.85, 1.15);
+    // Apply calibration error here to get the "actual" CVR
+    const errorMultiplier = 1 + randomInRange(-0.2, 0.2); // Defaulting to 20% error for single-day
+    const actualCVR = contextualPCVR * errorMultiplier;
+
     const fractionalOrders = totalClicks * actualCVR;
     const totalOrders = Math.floor(fractionalOrders);
 
@@ -169,7 +173,7 @@ export async function* runMultiDaySimulation(
   
   // --- WARM-UP PHASE ---
   if (initialDeliveredRoi > 0 && nValue > 0) {
-    const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 13, basePCVR); // Use peak time for initial guess
+    const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, 13, basePCVR); // Use peak time for initial guess
     const initialPCVR = initialPCVRResponse.adjustedPCVR;
     const initialBid = initialPCVR * (aov / initialTargetRoi);
     const warmupSpend = nValue * initialBid;
@@ -263,8 +267,8 @@ export async function* runMultiDaySimulation(
 
 
     // --- Core Bid & Click Simulation for Interval ---
-    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, hour, basePCVR);
-    const pCvr = intervalPCVRResponse.adjustedPCVR;
+    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, hour, basePCVR);
+    const pCvr = intervalPCVRResponse.adjustedPCVR; // This is the "clean" pCVR
     const bid = pCvr * (aov / currentTargetRoi);
     
     let clickAttainmentFactor = 0;
@@ -292,7 +296,7 @@ export async function* runMultiDaySimulation(
     clicksSinceLastRpUpdate += clicks;
     clicksSinceLastBpUpdate += clicks;
     
-    // Apply calibration error here to get the "actual" CVR
+    // Apply calibration error here to get the "actual" CVR for order calculation
     const errorMultiplier = 1 + randomInRange(-calibrationError, calibrationError);
     const actualCVR = pCvr * errorMultiplier;
     
