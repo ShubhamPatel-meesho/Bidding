@@ -122,7 +122,7 @@ export default function MultiDaySimulator() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: `PID Strategy #${leaderboard.length + 1}`,
-      slRoi: 20, // Stop-loss ROI
+      slRoi: 10, // Stop-loss ROI
       initialTargetRoi: 15,
       initialDeliveredRoi: 20,
       dailyBudget: 300,
@@ -415,7 +415,7 @@ export default function MultiDaySimulator() {
                       <FormControl>
                         <div className="relative">
                           <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="number" placeholder="20" {...field} className="pl-8" />
+                          <Input type="number" placeholder="10" {...field} className="pl-8" />
                         </div>
                       </FormControl>
                       <FormMessage />
