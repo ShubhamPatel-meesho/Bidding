@@ -1,7 +1,7 @@
 
 'use server';
 
-const BASELINE_ROI = 5; // A typical or average ROI target
+const BASELINE_ROI = 15; // A typical or average ROI target
 
 // Based on the ObyC (Orders by Clicks) graph. These values are now normalized
 // so their average is ~1.0. This makes the `basePCVR` a true average baseline.
