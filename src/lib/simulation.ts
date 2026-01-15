@@ -214,7 +214,7 @@ export async function* runMultiDaySimulation(
 
     // Calculate ROI Pacing Target
     let rpTargetRoi = lastIntervalTargetRoi;
-    if (modules.includes('rp') && clicksSinceLastUpdate >= kValue && recentHistory.length > 0) {
+    if (clicksSinceLastUpdate >= kValue && recentHistory.length > 0) {
       const error = (slRoi - deliveredRoi) / slRoi;
       integralError += error;
       const derivativeError = error - previousError;
@@ -228,30 +228,35 @@ export async function* runMultiDaySimulation(
 
     // Calculate Budget Pacing Target
     let bpTargetRoi = lastIntervalTargetRoi;
-    if (modules.includes('bp')) {
-        const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
-        const adjustment = bpP * bpError;
-        bpTargetRoi = lastIntervalTargetRoi * (1 + adjustment);
-    }
+    const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
+    const bpAdjustment = bpP * bpError;
+    bpTargetRoi = lastIntervalTargetRoi * (1 + bpAdjustment);
     
     // --- Module Selection Logic ---
     const isOverspending = dayBudgetUtilisation > idealBudgetUtilisation;
+    const useRP = modules.includes('rp');
+    const useBP = modules.includes('bp');
 
-    if (deliveredRoi <= slRoi) {
+    if (useRP && useBP) {
+        if (deliveredRoi <= slRoi) {
+            activeModule = 'RP';
+            currentTargetRoi = rpTargetRoi;
+        } else if (isOverspending) {
+            activeModule = 'BP';
+            currentTargetRoi = bpTargetRoi;
+        } else { // Underspending and ROI is fine
+            activeModule = 'RP';
+            currentTargetRoi = rpTargetRoi;
+        }
+    } else if (useRP) {
         activeModule = 'RP';
         currentTargetRoi = rpTargetRoi;
-    } else if (isOverspending) {
+    } else if (useBP) {
         activeModule = 'BP';
         currentTargetRoi = bpTargetRoi;
-    } else { // Underspending and ROI is fine
-        activeModule = 'RP';
-        currentTargetRoi = rpTargetRoi;
-    }
-    
-    // If no modules are selected, it just uses the last target
-    if (modules.length === 0) {
-      activeModule = 'None';
-      currentTargetRoi = lastIntervalTargetRoi;
+    } else {
+        activeModule = 'None';
+        currentTargetRoi = lastIntervalTargetRoi;
     }
 
 
