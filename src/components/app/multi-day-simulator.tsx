@@ -478,12 +478,12 @@ export default function MultiDaySimulator() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {dailyTotals.map(day => {
+                            {dailyTotals.map((day, index) => {
                                 const deliveredROI = day.spend > 0 ? day.gmv / day.spend : 0;
                                 const budgetUtilisation = form.getValues('dailyBudget') > 0 ? day.spend / form.getValues('dailyBudget') : 0;
                                 const avgTargetROI = day.totalClicksForWeight > 0 ? day.weightedTargetROI / day.totalClicksForWeight : 0;
                                 return (
-                                    <TableRow key={day.day}>
+                                    <TableRow key={`day-total-${index}`}>
                                         <TableCell>Day {day.day}</TableCell>
                                         <TableCell className="text-right">{formatRoi(deliveredROI)}</TableCell>
                                         <TableCell className="text-right">{formatRoi(avgTargetROI)}</TableCell>
@@ -515,4 +515,5 @@ export default function MultiDaySimulator() {
   );
 }
 
+    
     
