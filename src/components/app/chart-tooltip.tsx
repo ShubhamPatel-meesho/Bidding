@@ -8,7 +8,7 @@ import type { TooltipProps } from 'recharts';
 const formatValue = (value: any): string => {
     if (typeof value === 'number') {
         // Use toLocaleString for numbers to handle formatting and avoid excessive decimals
-        if (Math.abs(value) < 1) {
+        if (Math.abs(value) < 1 && value !== 0) {
             return value.toFixed(4); // For small decimals like pCVR
         }
         return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -39,6 +39,7 @@ export const CustomChartTooltip = ({ active, payload, label }: TooltipProps<numb
       { name: 'ROI Target', value: `${formatValue(data.targetROI)}x`, color: 'hsl(var(--chart-5))' },
       { name: 'ROI Min', value: `${formatValue(data.slRoi)}x`, color: 'hsl(var(--primary))' },
       { name: 'Average Bid', value: formatCurrency(data.avgBid), color: 'hsl(var(--foreground))' },
+      { name: 'pCVR', value: formatValue(data.pCvr), color: 'hsl(var(--secondary-foreground))' },
       { name: 'Daily Spend', value: formatCurrency(data.dayCumulativeSpend), color: 'hsl(var(--destructive))' },
       { name: 'Budget Utilisation', value: formatPercent(data.dayBudgetUtilisation), color: 'hsl(var(--accent))' },
     ];
