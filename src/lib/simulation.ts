@@ -11,45 +11,41 @@ const HIGH_CLICKS_PER_HOUR = 200; // Max potential clicks for a top bid at peak 
 const HOURS_PER_WINDOW = 6;
 const INTERVALS_PER_HOUR = 2; // 30-minute intervals
 
-// --- Time-based click potential (per window) ---
-// This is now deprecated in favor of the more granular clickPotentialByInterval
-const clickPotentialByWindow = [0.4, 1.0, 0.9, 0.7]; // Corresponds to 0-6h, 6-12h, 12-18h, 18-24h
-
-// New granular click potential based on the provided graph.
-// Values are normalized against the peak of ~144.2M clicks at hour 13.
-const hourlyClickPotential = [
-    0.31, // Hour 0
-    0.18, // Hour 1
-    0.09, // Hour 2
-    0.07, // Hour 3
-    0.10, // Hour 4
-    0.24, // Hour 5
-    0.41, // Hour 6
-    0.54, // Hour 7
-    0.66, // Hour 8
-    0.78, // Hour 9
-    0.83, // Hour 10
-    0.87, // Hour 11
-    0.97, // Hour 12
-    1.00, // Hour 13 (Peak)
-    0.98, // Hour 14
-    0.87, // Hour 15
-    0.87, // Hour 16
-    0.89, // Hour 17
-    0.85, // Hour 18
-    0.78, // Hour 19
-    0.70, // Hour 20
-    0.62, // Hour 21
-    0.45, // Hour 22
-    0.35, // Hour 23
+// This maps the hourly potential to each 30-minute interval within a day (48 intervals)
+const clickPotentialByInterval = [
+    0.31, 0.31, // 0h
+    0.18, 0.18, // 1h
+    0.09, 0.09, // 2h
+    0.07, 0.07, // 3h
+    0.10, 0.10, // 4h
+    0.24, 0.24, // 5h
+    0.41, 0.41, // 6h
+    0.54, 0.54, // 7h
+    0.66, 0.66, // 8h
+    0.78, 0.78, // 9h
+    0.83, 0.83, // 10h
+    0.87, 0.87, // 11h
+    0.97, 0.97, // 12h
+    1.00, 1.00, // 13h
+    0.98, 0.98, // 14h
+    0.87, 0.87, // 15h
+    0.87, 0.87, // 16h
+    0.89, 0.89, // 17h
+    0.85, 0.85, // 18h
+    0.78, 0.78, // 19h
+    0.70, 0.70, // 20h
+    0.62, 0.62, // 21h
+    0.45, 0.45, // 22h
+    0.35, 0.35, // 23h
 ];
 
-// This maps the hourly potential to each 30-minute interval within a day (48 intervals)
-const clickPotentialByInterval = Array.from({ length: 48 }, (_, i) => {
-    const hour = Math.floor(i / INTERVALS_PER_HOUR);
-    return hourlyClickPotential[hour];
-});
-
+// Based on the budget utilization graph provided by the user.
+const BU_IDEAL_PLAN = [
+    0.00, 0.01, 0.01, 0.02, 0.02, 0.02, 0.03, 0.03, 0.03, 0.03, 0.04, 0.05,
+    0.06, 0.08, 0.10, 0.13, 0.16, 0.19, 0.23, 0.27, 0.31, 0.35, 0.40, 0.45,
+    0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.84, 0.88, 0.91, 0.94, 0.96,
+    0.98, 0.99, 0.99, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00
+];
 
 // --- Helper Functions ---
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -67,10 +63,9 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
   for (let i = 0; i < roiTargets.length; i++) {
     const targetROI = roiTargets[i];
     
-    // Get the first hour of the current window to pass to getAdjustedPCVR
     const hourForWindow = i * HOURS_PER_WINDOW;
 
-    // 1. Get Contextual pCVR based on Target ROI, AOV, and the time window
+    // 1. Get Contextual pCVR
     const pCVRResponse = await getAdjustedPCVR(targetROI, aov, hourForWindow, 0.015, 0); // Using defaults for single day sim
     let contextualPCVR: number;
     if ('error' in pCVRResponse) {
@@ -81,14 +76,10 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
     } else {
         contextualPCVR = pCVRResponse.adjustedPCVR;
     }
-
-    // 2. pCVR is now determined by the server action
-    const simulatedPCVR = contextualPCVR;
     
-    // 3. Calculate Bid based on target ROI
-    const bid = simulatedPCVR * (aov / targetROI);
+    const bid = contextualPCVR * (aov / targetROI);
 
-    // 4. Simulate Clicks with improved logic, considering budget and bid throttle
+    // 4. Simulate Clicks
     let totalClicks = 0;
     if (remainingBudget > 0 && bid >= BID_THROTTLE_THRESHOLD) {
         let clickAttainmentFactor;
@@ -104,7 +95,8 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
             clickAttainmentFactor = 0.5 + bidPosition * 0.5;
         }
         
-        const maxWindowClicks = HIGH_CLICKS_PER_HOUR * clickPotentialByWindow[i];
+        const windowClickPotential = clickPotentialByInterval.slice(i * 12, (i+1) * 12).reduce((a,b) => a+b, 0) / 12;
+        const maxWindowClicks = HIGH_CLICKS_PER_HOUR * windowClickPotential;
         const potentialClicksPerHour = maxWindowClicks * clickAttainmentFactor;
         const potentialWindowClicks = potentialClicksPerHour * HOURS_PER_WINDOW * randomInRange(0.95, 1.05);
 
@@ -116,12 +108,10 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
         }
     }
 
-    // 5. Simulate Orders
-    const actualCVR = simulatedPCVR * randomInRange(0.85, 1.15);
+    const actualCVR = contextualPCVR * randomInRange(0.85, 1.15);
     const fractionalOrders = totalClicks * actualCVR;
     const totalOrders = Math.floor(fractionalOrders);
 
-    // 6. Calculate Final Metrics for the window
     const totalSpend = totalClicks * bid;
     remainingBudget -= totalSpend;
     if(remainingBudget < 0) remainingBudget = 0;
@@ -172,12 +162,11 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 export async function* runMultiDaySimulation(
     params: MultiDaySimulationParams
 ): AsyncGenerator<TimeIntervalResult | undefined, void, undefined> {
-  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, basePCVR, calibrationError } = params;
+  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, bpP, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, basePCVR, calibrationError, modules } = params;
 
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
   
   // --- WARM-UP PHASE ---
-  // Pre-populate history to achieve the initialDeliveredRoi
   if (initialDeliveredRoi > 0 && nValue > 0) {
     const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 13, basePCVR, calibrationError); // Use peak time for initial guess
     const initialPCVR = initialPCVRResponse.adjustedPCVR;
@@ -194,7 +183,7 @@ export async function* runMultiDaySimulation(
   }
   
   let clicksSinceLastUpdate = 0;
-  let currentTargetRoi = initialTargetRoi;
+  let lastIntervalTargetRoi = initialTargetRoi;
   let deliveredRoi = initialDeliveredRoi; 
   let integralError = 0;
   let previousError = 0;
@@ -211,24 +200,60 @@ export async function* runMultiDaySimulation(
 
     const isNewDay = intervalIndexInDay === 0;
     
-    // Get cumulative data from the PREVIOUS interval of the SAME day
     const prevIntervalOfDay = (i > 0 && !isNewDay) ? lastIntervals[i-1] : null;
 
     const dailySpend = prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeSpend : 0;
     const remainingDailyBudget = dailyBudget - dailySpend;
+    const dayBudgetUtilisation = dailyBudget > 0 ? dailySpend / dailyBudget : 0;
+    const idealBudgetUtilisation = BU_IDEAL_PLAN[intervalIndexInDay];
 
-    // --- PID Controller Logic ---
-    if (clicksSinceLastUpdate >= kValue && recentHistory.length > 0) {
+
+    // --- Pacing Logic ---
+    let activeModule: 'RP' | 'BP' | 'None' = 'None';
+    let currentTargetRoi = lastIntervalTargetRoi;
+
+    // Calculate ROI Pacing Target
+    let rpTargetRoi = lastIntervalTargetRoi;
+    if (modules.includes('rp') && clicksSinceLastUpdate >= kValue && recentHistory.length > 0) {
       const error = (slRoi - deliveredRoi) / slRoi;
       integralError += error;
       const derivativeError = error - previousError;
       
       const adjustment = (pacingP * error) + (pacingI * integralError) + (pacingD * derivativeError);
-      currentTargetRoi = currentTargetRoi * (1 + adjustment);
+      rpTargetRoi = lastIntervalTargetRoi * (1 + adjustment);
       
       previousError = error;
-      clicksSinceLastUpdate = 0;
+      clicksSinceLastUpdate = 0; // Reset after update
     }
+
+    // Calculate Budget Pacing Target
+    let bpTargetRoi = lastIntervalTargetRoi;
+    if (modules.includes('bp')) {
+        const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
+        const adjustment = bpP * bpError;
+        bpTargetRoi = lastIntervalTargetRoi * (1 + adjustment);
+    }
+    
+    // --- Module Selection Logic ---
+    const isOverspending = dayBudgetUtilisation > idealBudgetUtilisation;
+
+    if (deliveredRoi <= slRoi) {
+        activeModule = 'RP';
+        currentTargetRoi = rpTargetRoi;
+    } else if (isOverspending) {
+        activeModule = 'BP';
+        currentTargetRoi = bpTargetRoi;
+    } else { // Underspending and ROI is fine
+        activeModule = 'RP';
+        currentTargetRoi = rpTargetRoi;
+    }
+    
+    // If no modules are selected, it just uses the last target
+    if (modules.length === 0) {
+      activeModule = 'None';
+      currentTargetRoi = lastIntervalTargetRoi;
+    }
+
 
     // --- Core Bid & Click Simulation for Interval ---
     const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, hour, basePCVR, calibrationError);
@@ -295,13 +320,15 @@ export async function* runMultiDaySimulation(
         deliveredRoi = totalHistoryGmv / totalHistorySpend;
     }
     
-    const dayCumulativeSpend = dailySpend + spend;
-    const dayCumulativeGmv = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeGmv : 0) + gmv;
-    const dayROI = dayCumulativeSpend > 0 ? dayCumulativeGmv / dayCumulativeSpend : 0;
+    const finalDayCumulativeSpend = dailySpend + spend;
+    const finalDayCumulativeGmv = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeGmv : 0) + gmv;
+    const dayROI = finalDayCumulativeSpend > 0 ? finalDayCumulativeGmv / finalDayCumulativeSpend : 0;
     
-    const dayCumulativeClicks = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeClicks : 0) + clicks;
-    const dayBudgetUtilisation = dailyBudget > 0 ? dayCumulativeSpend / dailyBudget : 0;
+    const finalDayCumulativeClicks = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeClicks : 0) + clicks;
+    const finalDayBudgetUtilisation = dailyBudget > 0 ? finalDayCumulativeSpend / dailyBudget : 0;
     
+    lastIntervalTargetRoi = currentTargetRoi;
+
     const result: TimeIntervalResult = {
       timestamp: i,
       day: day,
@@ -317,10 +344,12 @@ export async function* runMultiDaySimulation(
       spend: spend,
       avgBid: bid,
       pCvr: pCvr,
-      dayCumulativeClicks: dayCumulativeClicks,
-      dayCumulativeGmv: dayCumulativeGmv,
-      dayCumulativeSpend: dayCumulativeSpend,
-      dayBudgetUtilisation: dayBudgetUtilisation,
+      dayCumulativeClicks: finalDayCumulativeClicks,
+      dayCumulativeGmv: finalDayCumulativeGmv,
+      dayCumulativeSpend: finalDayCumulativeSpend,
+      dayBudgetUtilisation: finalDayBudgetUtilisation,
+      idealBudgetUtilisation: idealBudgetUtilisation,
+      activeModule: activeModule,
     };
     lastIntervals[i] = result;
     if (i < totalIntervals) {

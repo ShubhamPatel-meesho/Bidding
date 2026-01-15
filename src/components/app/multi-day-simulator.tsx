@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -20,6 +20,7 @@ import { CustomChartTooltip } from './chart-tooltip';
 import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,9 +47,13 @@ const formSchema = z.object({
   pacingP: z.coerce.number().min(0),
   pacingI: z.coerce.number().min(0),
   pacingD: z.coerce.number().min(0),
+  bpP: z.coerce.number().min(0),
   nValue: z.coerce.number().positive({ message: "Must be positive" }),
   kValue: z.coerce.number().positive({ message: "Must be positive" }),
   numDays: z.coerce.number().positive().int().min(1, "At least 1 day"),
+  modules: z.array(z.string()).refine(value => value.some(item => item), {
+    message: "You have to select at least one module.",
+  }),
 });
 
 type MultiDayFormValues = z.infer<typeof formSchema>;
@@ -57,6 +62,11 @@ const formatRoi = (value: number) => value.toFixed(2);
 const formatCurrency = (value: number) => `₹${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 const formatPercent = (value: number) => `${(value * 100).toFixed(0)}%`;
 const formatSmallPercent = (value: number) => `${(value * 100).toFixed(2)}%`;
+
+const modules = [
+  { id: 'rp', label: 'ROI Pacing' },
+  { id: 'bp', label: 'Budget Pacing' },
+];
 
 
 const CustomLegend = (props: any) => {
@@ -71,9 +81,13 @@ const CustomLegend = (props: any) => {
           'deliveredROI': 'Catalog ROI',
           'targetROI': 'ROI Target',
           'slRoi': 'ROI Min',
+          'dayBudgetUtilisation': 'Budget Utilisation',
+          'idealBudgetUtilisation': 'Ideal Utilisation',
       };
-      return { name: nameMapping[dataKey] || dataKey, color };
-  });
+      const finalName = nameMapping[dataKey];
+      if (!finalName) return null;
+      return { name: finalName, color };
+  }).filter(Boolean);
 
   return (
     <div className="flex items-center justify-center gap-4 flex-wrap">
@@ -117,9 +131,11 @@ export default function MultiDaySimulator() {
       pacingP: 0.2,
       pacingI: 0,
       pacingD: 0,
+      bpP: 20,
       nValue: 3000,
       kValue: 600,
       numDays: 3,
+      modules: ['rp', 'bp'],
     },
   });
 
@@ -130,6 +146,8 @@ export default function MultiDaySimulator() {
         name: selectedEntry.name || `Clone of ${selectedEntry.id.substring(0,4)}`,
         basePCVR: selectedEntry.basePCVR * 100, // convert back to percentage for display
         calibrationError: selectedEntry.calibrationError * 100, // convert back to percentage for display
+        bpP: selectedEntry.bpP ?? 20,
+        modules: selectedEntry.modules ?? ['rp', 'bp'],
       });
       if(selectedEntry.results) {
           setResults(selectedEntry.results);
@@ -159,24 +177,29 @@ export default function MultiDaySimulator() {
       let processedIntervals = 0;
       
       const processChunk = async () => {
-        const chunkSize = 48; // one day
-        let chunkProcessed = 0;
         let result: IteratorResult<TimeIntervalResult | undefined, void> | undefined;
-        
-        while(chunkProcessed < chunkSize) {
-           result = await simulationGenerator.next();
-           if (result.value) {
-                tempResults.push(result.value);
-                processedIntervals++;
-           }
-           chunkProcessed++;
-           if (result.done) break;
+
+        try {
+          result = await simulationGenerator.next();
+        } catch (error) {
+          console.error("Simulation error:", error);
+          setIsLoading(false);
+          toast({
+            variant: "destructive",
+            title: "Simulation Failed",
+            description: error instanceof Error ? error.message : "An unknown error occurred.",
+          });
+          return;
+        }
+
+        if (result.value) {
+            tempResults.push(result.value);
+            processedIntervals++;
+            setResults([...tempResults]);
+            setProgress((processedIntervals / totalIntervals) * 100);
         }
         
-        setResults([...tempResults]);
-        setProgress((processedIntervals / totalIntervals) * 100);
-        
-        if (result && !result.done) {
+        if (!result.done) {
             requestAnimationFrame(processChunk);
         } else {
             setIsLoading(false);
@@ -259,27 +282,78 @@ export default function MultiDaySimulator() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>Multi-Day Bidding Algorithm</CardTitle>
-          <CardDescription>Configure the parameters for the ROI Pacing controller.</CardDescription>
+          <CardDescription>Configure the parameters for the ROI and Budget Pacing controllers.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(runAndProcessSimulation)} className="space-y-6">
-               <FormField
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Run Name</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Trophy className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="My Winning Strategy" {...field} className="pl-8" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                <FormField
                   control={form.control}
-                  name="name"
-                  render={({ field }) => (
+                  name="modules"
+                  render={() => (
                     <FormItem>
-                      <FormLabel>Run Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Trophy className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input placeholder="My Winning Strategy" {...field} className="pl-8" />
-                        </div>
-                      </FormControl>
+                      <FormLabel>Active Modules</FormLabel>
+                      <div className="flex items-center gap-4 pt-2">
+                        {modules.map((item) => (
+                          <FormField
+                            key={item.id}
+                            control={form.control}
+                            name="modules"
+                            render={({ field }) => {
+                              return (
+                                <FormItem
+                                  key={item.id}
+                                  className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(item.id)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([
+                                              ...field.value,
+                                              item.id,
+                                            ])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (value) => value !== item.id
+                                              )
+                                            );
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal">
+                                    {item.label}
+                                  </FormLabel>
+                                </FormItem>
+                              );
+                            }}
+                          />
+                        ))}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <FormField
                   control={form.control}
@@ -414,14 +488,14 @@ export default function MultiDaySimulator() {
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
-                    <p className="text-sm font-medium mb-2">PID Controller Gains</p>
+                    <p className="text-sm font-medium mb-2">ROI Pacing (PID)</p>
                     <div className="grid grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
                         name="pacingP"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>P (Proportional)</FormLabel>
+                            <FormLabel>P (Prop.)</FormLabel>
                             <FormControl>
                               <Input type="number" step="0.01" {...field} />
                             </FormControl>
@@ -447,7 +521,7 @@ export default function MultiDaySimulator() {
                         name="pacingD"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>D (Derivative)</FormLabel>
+                            <FormLabel>D (Deriv.)</FormLabel>
                             <FormControl>
                               <Input type="number" step="0.01" {...field} />
                             </FormControl>
@@ -456,6 +530,20 @@ export default function MultiDaySimulator() {
                         )}
                       />
                     </div>
+                     <p className="text-sm font-medium mt-4 mb-2">Budget Pacing</p>
+                     <FormField
+                        control={form.control}
+                        name="bpP"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>P (Proportional)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.1" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                   </CardContent>
                 </Card>
                 <Card>
@@ -597,17 +685,17 @@ export default function MultiDaySimulator() {
                                     label={{ value: 'Interval (30 mins)', position: 'insideBottom', offset: -15 }}
                                 />
                                 <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
-                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" />
+                                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" domain={[0,1]} tickFormatter={formatPercent}/>
                                 <Tooltip 
                                     content={<CustomChartTooltip />}
                                 />
                                 <Legend content={<CustomLegend />} wrapperStyle={{ bottom: 0 }} />
-                                <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" fill="hsl(var(--chart-2))" stroke="hsl(var(--chart-2))" dot={false} />
+                                <Area yAxisId="right" type="monotone" dataKey="dayBudgetUtilisation" name="Budget Utilisation" fill="hsl(var(--chart-2))" stroke="hsl(var(--chart-2))" dot={false} />
                                 <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1))" />
-                                <Line yAxisId="right" type="monotone" dataKey="dayCumulativeClicks" name="Daily Clicks" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false}/>
                                 <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--primary))" strokeDasharray="5 5" dot={false} />
+                                <Line yAxisId="right" type="monotone" dataKey="idealBudgetUtilisation" name="Ideal Utilisation" stroke="hsl(var(--accent))" strokeWidth={2} dot={false}/>
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>

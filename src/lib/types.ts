@@ -61,9 +61,11 @@ export type MultiDaySimulationParams = {
   pacingP: number;
   pacingI: number;
   pacingD: number;
+  bpP: number;
   numDays: number;
   nValue: number;
   kValue: number;
+  modules: string[];
 };
 
 export type TimeIntervalResult = {
@@ -85,6 +87,8 @@ export type TimeIntervalResult = {
   dayCumulativeGmv: number;
   dayCumulativeSpend: number;
   dayBudgetUtilisation: number;
+  idealBudgetUtilisation: number;
+  activeModule: 'RP' | 'BP' | 'None';
 };
 
 export type MultiDayLeaderboardEntry = MultiDaySimulationParams & {

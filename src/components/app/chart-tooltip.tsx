@@ -32,6 +32,7 @@ export const CustomChartTooltip = ({ active, payload, label }: TooltipProps<numb
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const items = [
+      { name: 'Active Module', value: data.activeModule, color: 'hsl(var(--foreground))' },
       { name: 'Catalog GMV', value: formatCurrency(data.dayCumulativeGmv), color: 'hsl(var(--chart-2))' },
       { name: 'Day ROI', value: `${formatValue(data.dayROI)}x`, color: 'hsl(var(--chart-1))' },
       { name: 'Daily Clicks', value: data.dayCumulativeClicks?.toLocaleString(), color: 'hsl(var(--chart-3))' },
@@ -42,11 +43,12 @@ export const CustomChartTooltip = ({ active, payload, label }: TooltipProps<numb
       { name: 'pCVR', value: formatValue(data.pCvr), color: 'hsl(var(--secondary-foreground))' },
       { name: 'Daily Spend', value: formatCurrency(data.dayCumulativeSpend), color: 'hsl(var(--destructive))' },
       { name: 'Budget Utilisation', value: formatPercent(data.dayBudgetUtilisation), color: 'hsl(var(--accent))' },
+      { name: 'Ideal Utilisation', value: formatPercent(data.idealBudgetUtilisation), color: 'hsl(var(--accent))' },
     ];
     
     return (
       <Card className="p-4 shadow-lg bg-background/90 backdrop-blur-sm w-64">
-        <p className="font-bold mb-2">Day {data.day}, Interval {data.timestamp}</p>
+        <p className="font-bold mb-2">Day {data.day}, Interval {data.timestamp % 48}</p>
         <div className="space-y-1">
             {items.map(item => (
                  <div key={item.name} className="flex items-center justify-between gap-4">
