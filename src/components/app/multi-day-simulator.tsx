@@ -75,37 +75,51 @@ const modules = [
   { id: 'bp', label: 'Budget Pacing' },
 ];
 
+const seriesVisibilityInitialState: Record<string, boolean> = {
+  dayCumulativeGmv: true,
+  dayROI: true,
+  deliveredROI: true,
+  targetROI: true,
+  slRoi: true,
+};
+
+type SeriesVisibility = typeof seriesVisibilityInitialState;
+
 
 const CustomLegend = (props: any) => {
-  const { payload } = props;
+  const { payload, onToggle, visibleSeries } = props;
   const items = payload.map((entry: any) => {
       const { dataKey, color, type } = entry;
       const nameMapping: { [key: string]: string } = {
           'dayCumulativeGmv': 'Catalog GMV',
           'dayROI': 'Day ROI',
-          'dayCumulativeClicks': 'Daily Clicks',
           'deliveredROI': 'Catalog ROI',
           'targetROI': 'ROI Target',
           'slRoi': 'ROI Min',
-          'dayBudgetUtilisation': 'Budget Utilisation',
-          'idealBudgetUtilisation': 'Ideal Utilisation',
       };
       const finalName = nameMapping[dataKey];
       if (!finalName) return null;
-      return { name: finalName, color, type };
+      return { dataKey, name: finalName, color, type };
   }).filter(Boolean);
 
   return (
     <div className="flex items-center justify-center gap-4 flex-wrap">
       {items.map((item) => (
-        <div key={item.name} className="flex items-center gap-2 text-sm">
+        <button 
+          key={item.name} 
+          className={cn(
+            "flex items-center gap-2 text-sm cursor-pointer",
+            !visibleSeries[item.dataKey] && "opacity-50"
+          )}
+          onClick={() => onToggle(item.dataKey)}
+        >
           {item.type === 'line' ? (
               <div className="w-2.5 h-px" style={{backgroundColor: item.color}}></div>
           ) : (
              <span className="w-2.5 h-2.5" style={{ backgroundColor: item.color }}></span>
           )}
           <span>{item.name}</span>
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -119,6 +133,12 @@ export default function MultiDaySimulator() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const simulationStateRef = useRef<{ running: boolean }>({ running: false });
+  const [visibleSeries, setVisibleSeries] = useState<SeriesVisibility>(seriesVisibilityInitialState);
+
+  const toggleSeries = (dataKey: keyof SeriesVisibility) => {
+    setVisibleSeries(prev => ({ ...prev, [dataKey]: !prev[dataKey] }));
+  };
+
 
   useEffect(() => {
     setIsMounted(true);
@@ -740,18 +760,21 @@ export default function MultiDaySimulator() {
                                 <Tooltip 
                                     content={<CustomChartTooltip />}
                                 />
-                                <Legend content={<CustomLegend />} wrapperStyle={{ bottom: 0 }} />
+                                <Legend 
+                                    content={<CustomLegend onToggle={toggleSeries} visibleSeries={visibleSeries} />} 
+                                    wrapperStyle={{ bottom: 0 }} 
+                                />
                                 <defs>
                                   <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8}/>
                                     <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
                                   </linearGradient>
                                 </defs>
-                                <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" stroke="hsl(var(--chart-2))" fill="url(#colorGmv)" />
-                                <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1))" />
-                                <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false}/>
-                                <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false}/>
-                                <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--primary))" strokeDasharray="5 5" dot={false} />
+                                <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" stroke="hsl(var(--chart-2))" fill="url(#colorGmv)" hide={!visibleSeries.dayCumulativeGmv} />
+                                <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1))" hide={!visibleSeries.dayROI} />
+                                <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false} hide={!visibleSeries.deliveredROI} />
+                                <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false} hide={!visibleSeries.targetROI} />
+                                <Line yAxisId="left" type="monotone" dataKey="slRoi" name="ROI Min" stroke="hsl(var(--primary))" strokeDasharray="5 5" dot={false} hide={!visibleSeries.slRoi} />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
