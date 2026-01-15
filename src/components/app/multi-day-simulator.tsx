@@ -147,12 +147,13 @@ export default function MultiDaySimulator() {
       let tempResults: TimeIntervalResult[] = [];
       const totalIntervals = data.numDays * 48;
       let processedIntervals = 0;
+      
+      let result: IteratorResult<TimeIntervalResult | undefined, void> | null = null;
 
       const processChunk = async () => {
         // Process a chunk of intervals to make rendering smoother
         const chunkSize = 48; // one day
         let chunkProcessed = 0;
-        let result: IteratorResult<TimeIntervalResult, void> | null = null;
         
         while(chunkProcessed < chunkSize && processedIntervals < totalIntervals) {
            result = await simulationGenerator.next();
@@ -519,7 +520,10 @@ export default function MultiDaySimulator() {
                             <FormItem className="flex-grow">
                               <FormLabel className="sr-only">Run Name</FormLabel>
                               <FormControl>
-                                  <Input placeholder="My Winning Strategy" {...field} />
+                                <div className="relative">
+                                  <Trophy className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  <Input placeholder="My Winning Strategy" {...field} className="pl-8" />
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -541,7 +545,7 @@ export default function MultiDaySimulator() {
         </CardContent>
       </Card>
       
-      <div className="w-full">
+      <div className="w-full flex flex-col gap-8">
         {isLoading && (
           <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
             <div className="w-full max-w-md p-8 text-center">
@@ -553,7 +557,8 @@ export default function MultiDaySimulator() {
             </div>
           </div>
         )}
-        {results && results.length > 0 && (
+
+        {results && results.length > 0 && !isLoading && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">
             <Card>
                 <CardHeader>
@@ -630,78 +635,78 @@ export default function MultiDaySimulator() {
             </Card>
           </div>
         )}
+        
          {!isLoading && (!results || results.length === 0) && (
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
-                <div className="text-center text-muted-foreground p-8">
-                    <Cog className="mx-auto h-12 w-12 mb-4" />
-                    <h3 className="text-lg font-semibold">Ready to run the multi-day simulation?</h3>
-                    <p>Configure your algorithm parameters and click "Run" to begin.</p>
-                </div>
-            </div>
-            {leaderboard.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Saved Runs</CardTitle>
-                  <CardDescription>Load a previously saved simulation run.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Days</TableHead>
-                        <TableHead>SL ROI</TableHead>
-                        <TableHead className="text-right">Final ROI</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {leaderboard.map((entry) => (
-                        <TableRow key={entry.id}>
-                          <TableCell className="font-medium">{entry.name}</TableCell>
-                          <TableCell>{entry.numDays}</TableCell>
-                          <TableCell>{entry.slRoi}x</TableCell>
-                          <TableCell className="text-right font-semibold tabular-nums">{formatRoi(entry.finalDeliveredROI)}</TableCell>
-                          <TableCell className="text-right">
-                             <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleLeaderboardSelect(entry)}
-                              >
-                                <Repeat className="mr-2 h-4 w-4" />
-                                Load
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className='h-9 w-9'>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete the "{entry.name}" run.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleLeaderboardDelete(entry.id)}>
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
+          <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
+              <div className="text-center text-muted-foreground p-8">
+                  <Cog className="mx-auto h-12 w-12 mb-4" />
+                  <h3 className="text-lg font-semibold">Ready to run the multi-day simulation?</h3>
+                  <p>Configure your algorithm parameters and click "Run" to begin.</p>
+              </div>
           </div>
+        )}
+
+        {!isLoading && leaderboard.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Saved Runs</CardTitle>
+              <CardDescription>Load a previously saved simulation run.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Days</TableHead>
+                    <TableHead>SL ROI</TableHead>
+                    <TableHead className="text-right">Final ROI</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leaderboard.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">{entry.name}</TableCell>
+                      <TableCell>{entry.numDays}</TableCell>
+                      <TableCell>{entry.slRoi}x</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">{formatRoi(entry.finalDeliveredROI)}</TableCell>
+                      <TableCell className="text-right">
+                         <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLeaderboardSelect(entry)}
+                          >
+                            <Repeat className="mr-2 h-4 w-4" />
+                            Load
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className='h-9 w-9'>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete the "{entry.name}" run.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleLeaderboardDelete(entry.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
