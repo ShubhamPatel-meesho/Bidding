@@ -1,4 +1,5 @@
 
+
 export const MULTI_DAY_SIMULATOR_DEFAULTS = {
   name: `PID Strategy`,
   slRoi: 10,
@@ -19,4 +20,17 @@ export const MULTI_DAY_SIMULATOR_DEFAULTS = {
   bpKValue: 75,
   numDays: 3,
   modules: ['rp', 'bp'],
+};
+
+// --- New Bidding Probability Constants ---
+export const BID_PROBABILITY = {
+  UPPER_BID: 2.00,
+  UPPER_PROB: 0.99,
+  HIGH_BID: 1.00,
+  HIGH_PROB: 0.90,
+  MID_BID: 0.15,
+  MID_PROB: 0.05,
+  LOW_BID: 0.04,
+  LOW_PROB: 0.01,
+  THROTTLE_BID: 0.04,
 };

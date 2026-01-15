@@ -5,13 +5,12 @@
 
 
 
+
 import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
+import { BID_PROBABILITY } from './defaults';
 
 // --- Core Input Parameters (Fixed Assumptions) ---
-const COMPETITOR_HIGH_BID_THRESHOLD = 2.00; // ₹2.00 - Bids above this are highly competitive
-const COMPETITOR_LOW_BID_THRESHOLD = 0.80;  // ₹0.80 - Bids below this are not competitive
-const BID_THROTTLE_THRESHOLD = 0.04; // Below this bid, clicks are 0
 const HIGH_CLICKS_PER_HOUR = 200; // Max potential clicks for a top bid at peak time
 const HOURS_PER_WINDOW = 6;
 const INTERVALS_PER_HOUR = 2; // 30-minute intervals
@@ -55,6 +54,46 @@ const BU_IDEAL_PLAN = [
 // --- Helper Functions ---
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
+// Function to perform exponential interpolation
+const exponentialScale = (bid: number, minBid: number, maxBid: number, minProb: number, maxProb: number) => {
+    if (bid <= minBid) return minProb;
+    if (bid >= maxBid) return maxProb;
+
+    // Normalize bid to a 0-1 range
+    const normalizedBid = (bid - minBid) / (maxBid - minBid);
+    
+    // Use Math.pow for exponential scaling. A power > 1 makes it curve upwards.
+    const scaledProb = Math.pow(normalizedBid, 2); 
+    
+    // Map the scaled probability to the desired output range
+    return minProb + scaledProb * (maxProb - minProb);
+};
+
+
+const getClickAttainmentFactor = (bid: number): number => {
+    const {
+        UPPER_BID, UPPER_PROB, HIGH_BID, HIGH_PROB,
+        MID_BID, MID_PROB, LOW_BID, LOW_PROB, THROTTLE_BID
+    } = BID_PROBABILITY;
+
+    if (bid >= UPPER_BID) return UPPER_PROB;
+    if (bid >= HIGH_BID) {
+        // Linear scale from 1.0 to 2.0 -> 90% to 99%
+        const position = (bid - HIGH_BID) / (UPPER_BID - HIGH_BID);
+        return HIGH_PROB + position * (UPPER_PROB - HIGH_PROB);
+    }
+    if (bid >= MID_BID) {
+        return exponentialScale(bid, MID_BID, HIGH_BID, MID_PROB, HIGH_PROB);
+    }
+    if (bid >= LOW_BID) {
+        return exponentialScale(bid, LOW_BID, MID_BID, LOW_PROB, MID_PROB);
+    }
+    if (bid < THROTTLE_BID) return 0;
+    
+    return 0;
+};
+
+
 // --- Main Simulation Function ---
 export async function runSimulation(roiTargets: number[], aov: number, budget: number): Promise<SimulationResults | {error: string, windows: SimulationWindowResult[], summary: any}> {
   const windowResults: SimulationWindowResult[] = [];
@@ -83,27 +122,14 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
     }
     
     const bid = contextualPCVR * (aov / targetROI);
+    const clickAttainmentFactor = getClickAttainmentFactor(bid);
 
     // 4. Simulate Clicks
     let totalClicks = 0;
-    if (remainingBudget > 0 && bid >= BID_THROTTLE_THRESHOLD) {
-        let clickAttainmentFactor;
-        
-        if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
-            const position = (bid - BID_THROTTLE_THRESHOLD) / (COMPETITOR_LOW_BID_THRESHOLD - BID_THROTTLE_THRESHOLD);
-            clickAttainmentFactor = Math.pow(position, 2) * 0.5;
-        } else if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
-            clickAttainmentFactor = 1.0; 
-        } else {
-            const bidRange = COMPETITOR_HIGH_BID_THRESHOLD - COMPETITOR_LOW_BID_THRESHOLD;
-            const bidPosition = (bid - COMPETITOR_LOW_BID_THRESHOLD) / bidRange;
-            clickAttainmentFactor = 0.5 + bidPosition * 0.5;
-        }
-        
+    if (remainingBudget > 0 && clickAttainmentFactor > 0) {
         const windowClickPotential = clickPotentialByInterval.slice(i * 12, (i+1) * 12).reduce((a,b) => a+b, 0) / 12;
         const maxWindowClicks = HIGH_CLICKS_PER_HOUR * windowClickPotential;
-        const potentialClicksPerHour = maxWindowClicks * clickAttainmentFactor;
-        const potentialWindowClicks = potentialClicksPerHour * HOURS_PER_WINDOW * randomInRange(0.95, 1.05);
+        const potentialWindowClicks = maxWindowClicks * clickAttainmentFactor * randomInRange(0.95, 1.05);
 
         const affordableClicks = remainingBudget / bid;
         totalClicks = Math.min(potentialWindowClicks, affordableClicks);
@@ -113,7 +139,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
         }
     }
 
-    // Apply calibration error here to get the "actual" CVR
+    // This is the "actual" CVR based on a separate error model
     const errorMultiplier = 1 + randomInRange(-0.2, 0.2); // Defaulting to 20% error for single-day
     const actualCVR = contextualPCVR * errorMultiplier;
 
@@ -287,19 +313,7 @@ export async function* runMultiDaySimulation(
     const bid = pCvrForBidding * (aov / currentTargetRoi);
     
     // 3. Simulate clicks based on the bid.
-    let clickAttainmentFactor = 0;
-    if (bid >= BID_THROTTLE_THRESHOLD && remainingDailyBudget > 0) {
-       if (bid < COMPETITOR_LOW_BID_THRESHOLD) {
-            const position = (bid - BID_THROTTLE_THRESHOLD) / (COMPETITOR_LOW_BID_THRESHOLD - BID_THROTTLE_THRESHOLD);
-            clickAttainmentFactor = Math.pow(position, 2) * 0.5;
-        } else if (bid > COMPETITOR_HIGH_BID_THRESHOLD) {
-            clickAttainmentFactor = 1.0; 
-        } else {
-            const bidRange = COMPETITOR_HIGH_BID_THRESHOLD - COMPETITOR_LOW_BID_THRESHOLD;
-            const bidPosition = (bid - COMPETITOR_LOW_BID_THRESHOLD) / bidRange;
-            clickAttainmentFactor = 0.5 + bidPosition * 0.5;
-        }
-    }
+    const clickAttainmentFactor = getClickAttainmentFactor(bid);
     
     const clickPotential = clickPotentialByInterval[intervalIndexInDay] / INTERVALS_PER_HOUR;
     const maxIntervalClicks = HIGH_CLICKS_PER_HOUR * clickPotential * randomInRange(0.9, 1.1) * clickAttainmentFactor;
@@ -313,7 +327,7 @@ export async function* runMultiDaySimulation(
     clicksSinceLastBpUpdate += clicks;
     
     // 4. Calculate actual orders using the true pCVR and volatility.
-    // Start with the clean pCVR for this interval
+    // Start with the clean pCVR for this interval, but based on the "true" base
     const cleanPCVRResponse = await getAdjustedPCVR(currentTargetRoi, hour, trueBasePCVR);
     
     // Apply daily and interval volatility
