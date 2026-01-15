@@ -3,33 +3,33 @@
 
 const BASELINE_ROI = 5; // A typical or average ROI target
 
-// Based on the ObyC (Orders by Clicks) graph, modeling conversion rate throughout the day.
-// Higher values indicate peak conversion times. These are normalized around an average of ~0.18.
+// Based on the ObyC (Orders by Clicks) graph. These values are now normalized
+// so their average is ~1.0. This makes the `basePCVR` a true average baseline.
 const pCVR_MODIFIER_BY_HOUR = [
-  0.83, // 0h: 0.15
-  0.83, // 1h: 0.15
-  0.83, // 2h: 0.15
-  0.83, // 3h: 0.15
-  0.83, // 4h: 0.15
-  0.89, // 5h: 0.16
-  1.00, // 6h: 0.18
-  1.22, // 7h: 0.22
-  1.28, // 8h: 0.23 (Peak)
-  1.22, // 9h: 0.22
-  1.22, // 10h: 0.22
-  1.17, // 11h: 0.21
-  1.11, // 12h: 0.20
-  1.06, // 13h: 0.19
-  1.00, // 14h: 0.18
-  0.94, // 15h: 0.17
-  0.94, // 16h: 0.17
-  0.94, // 17h: 0.17
-  0.94, // 18h: 0.17
-  0.94, // 19h: 0.17
-  0.94, // 20h: 0.17
-  0.89, // 21h: 0.16
-  0.89, // 22h: 0.16
-  0.94, // 23h: 0.17
+  0.79, // 0h
+  0.79, // 1h
+  0.79, // 2h
+  0.79, // 3h
+  0.79, // 4h
+  0.84, // 5h
+  0.95, // 6h
+  1.16, // 7h
+  1.21, // 8h (Peak)
+  1.16, // 9h
+  1.16, // 10h
+  1.11, // 11h
+  1.05, // 12h
+  1.00, // 13h
+  0.95, // 14h
+  0.89, // 15h
+  0.89, // 16h
+  0.89, // 17h
+  0.89, // 18h
+  0.89, // 19h
+  0.89, // 20h
+  0.84, // 21h
+  0.84, // 22h
+  0.89, // 23h
 ];
 
 
@@ -56,15 +56,12 @@ export async function getAdjustedPCVR(targetROI: number, aov: number, hour: numb
     // 2. Apply the time-of-day modifier
     const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_HOUR[hour];
 
-    // 3. Apply calibration error
-    const errorAdjustment = randomInRange(-calibrationError, calibrationError);
-    const errorAdjustedPCVR = timeAdjustedPCVR + (basePCVR * errorAdjustment);
+    // 3. Apply calibration error as a multiplicative factor.
+    // A 100% error (calibrationError = 1.0) will result in a multiplier between 0x and 2x.
+    const errorMultiplier = 1 + randomInRange(-calibrationError, calibrationError);
+    const errorAdjustedPCVR = timeAdjustedPCVR * errorMultiplier;
 
-
-    // Add a small amount of randomness to simulate market fluctuations
-    const randomizedPCVR = errorAdjustedPCVR * randomInRange(0.95, 1.05);
-
-    return { adjustedPCVR: Math.max(0.001, randomizedPCVR) }; // Ensure pCVR doesn't go to zero or negative
+    return { adjustedPCVR: Math.max(0.0001, errorAdjustedPCVR) }; // Ensure pCVR doesn't go below a very small number
   } catch (e) {
     console.error('Error in getAdjustedPCVR:', e);
     return { error: 'Failed to get adjustment. Using base pCVR.', adjustedPCVR: basePCVR };
