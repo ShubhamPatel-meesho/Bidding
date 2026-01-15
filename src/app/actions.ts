@@ -57,7 +57,8 @@ export async function getAdjustedPCVR(targetROI: number, aov: number, hour: numb
     const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_HOUR[hour];
 
     // 3. Apply calibration error
-    const errorAdjustedPCVR = timeAdjustedPCVR * (1 + randomInRange(-calibrationError, calibrationError));
+    const errorAdjustment = randomInRange(-calibrationError, calibrationError);
+    const errorAdjustedPCVR = timeAdjustedPCVR + (basePCVR * errorAdjustment);
 
 
     // Add a small amount of randomness to simulate market fluctuations
