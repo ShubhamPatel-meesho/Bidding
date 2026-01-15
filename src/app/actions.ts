@@ -39,24 +39,10 @@ const randomInRange = (min: number, max: number) => Math.random() * (max - min) 
 // The pCVR is adjusted based on AOV and the aggressiveness of the Target ROI.
 export async function getAdjustedPCVR(targetROI: number, aov: number, hour: number, basePCVR: number, calibrationError: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
   try {
-    // 1. Create a non-linear bias based on how much the targetROI deviates from the baseline.
-    // A much higher ROI target implies focusing on a very specific, high-intent audience, increasing pCVR.
-    // A lower ROI target is more aggressive, bidding on a wider audience, thus lowering the average pCVR.
-    let roiDifference = (targetROI - BASELINE_ROI) / BASELINE_ROI; // a percentage difference
-    
-    // Use a square root function to make the adjustment less aggressive.
-    // Positive difference (high tROI) increases pCVR, negative (low tROI) decreases it.
-    let bias = Math.sign(roiDifference) * Math.sqrt(Math.abs(roiDifference)) * 0.20; // 20% influence at its peak
+    // 1. Apply the time-of-day modifier
+    const timeAdjustedPCVR = basePCVR * pCVR_MODIFIER_BY_HOUR[hour];
 
-    // Limit the bias to prevent extreme values.
-    bias = Math.max(-0.5, Math.min(0.5, bias));
-
-    const biasedPCVR = basePCVR * (1 + bias);
-
-    // 2. Apply the time-of-day modifier
-    const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_HOUR[hour];
-
-    // 3. Apply calibration error as a multiplicative factor.
+    // 2. Apply calibration error as a multiplicative factor.
     // A 100% error (calibrationError = 1.0) will result in a multiplier between 0x and 2x.
     const errorMultiplier = 1 + randomInRange(-calibrationError, calibrationError);
     const errorAdjustedPCVR = timeAdjustedPCVR * errorMultiplier;
