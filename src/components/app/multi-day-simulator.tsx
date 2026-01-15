@@ -158,12 +158,10 @@ export default function MultiDaySimulator() {
       const totalIntervals = data.numDays * 48;
       let processedIntervals = 0;
       
-      let result: IteratorResult<TimeIntervalResult | undefined, void>;
-
       const processChunk = async () => {
-        // Process a chunk of intervals to make rendering smoother
         const chunkSize = 48; // one day
         let chunkProcessed = 0;
+        let result: IteratorResult<TimeIntervalResult | undefined, void> | undefined;
         
         while(chunkProcessed < chunkSize) {
            result = await simulationGenerator.next();
@@ -178,7 +176,7 @@ export default function MultiDaySimulator() {
         setResults([...tempResults]);
         setProgress((processedIntervals / totalIntervals) * 100);
         
-        if (!result.done) {
+        if (result && !result.done) {
             requestAnimationFrame(processChunk);
         } else {
             setIsLoading(false);
@@ -289,8 +287,8 @@ export default function MultiDaySimulator() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Simulation Days</FormLabel>
-                      <FormControl>
-                         <div className="relative">
+                       <FormControl>
+                        <div className="relative">
                           <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input type="number" {...field} className="pl-8" />
                         </div>
@@ -321,8 +319,8 @@ export default function MultiDaySimulator() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Average Order Value</FormLabel>
-                      <FormControl>
-                         <div className="relative">
+                       <FormControl>
+                        <div className="relative">
                           <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input type="number" {...field} className="pl-8" />
                         </div>
@@ -386,7 +384,7 @@ export default function MultiDaySimulator() {
                           <FormItem>
                             <FormLabel>Base pCVR</FormLabel>
                              <FormControl>
-                               <div className="relative">
+                              <div className="relative">
                                 <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input type="number" step="0.01" {...field} className="pl-8" />
                               </div>
@@ -402,10 +400,10 @@ export default function MultiDaySimulator() {
                           <FormItem>
                             <FormLabel>Calib. Error</FormLabel>
                             <FormControl>
-                               <div className="relative">
+                              <div className="relative">
                                 <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input type="number" step="1" {...field} className="pl-8" />
-                               </div>
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -521,7 +519,7 @@ export default function MultiDaySimulator() {
                 </Card>
               </div>
 
-              {!isLoading && lastRunData && (
+               {lastRunData && !isLoading && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Save Run</CardTitle>
@@ -576,6 +574,12 @@ export default function MultiDaySimulator() {
 
         {results && results.length > 0 && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">
+             {isLoading && (
+               <div className="w-full max-w-md p-4 text-center mx-auto">
+                  <p className="text-lg font-semibold mb-2">Running {form.getValues('numDays')}-day simulation... ({progress.toFixed(0)}%)</p>
+                  <Progress value={progress} className="w-full" />
+                </div>
+            )}
             <Card>
                 <CardHeader>
                     <CardTitle>{form.getValues('numDays')}-Day Performance</CardTitle>
