@@ -56,6 +56,8 @@ type MultiDayFormValues = z.infer<typeof formSchema>;
 const formatRoi = (value: number) => value.toFixed(2);
 const formatCurrency = (value: number) => `₹${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 const formatPercent = (value: number) => `${(value * 100).toFixed(0)}%`;
+const formatSmallPercent = (value: number) => `${(value * 100).toFixed(2)}%`;
+
 
 const CustomLegend = (props: any) => {
   const { payload } = props;
@@ -201,7 +203,7 @@ export default function MultiDaySimulator() {
         calibrationError: lastRunData.calibrationError / 100,
     };
     
-    setLeaderboard(current => [newEntry, ...current].slice(0, 20));
+    setLeaderboard(current => [newEntry, ...current].sort((a, b) => b.finalDeliveredROI - a.finalDeliveredROI).slice(0, 20));
     toast({
       title: "Run Saved!",
       description: `"${lastRunData.name}" has been saved.`
@@ -226,19 +228,20 @@ export default function MultiDaySimulator() {
 
   const dailyTotals = useMemo(() => {
     if (!results || results.length === 0) return [];
-    const totals: { [key: number]: { day: number; spend: number; gmv: number; clicks: number; orders: number; weightedTargetROI: number, totalClicksForWeight: number; dayGmv: number} } = {};
+    const totals: { [key: number]: { day: number; spend: number; gmv: number; clicks: number; orders: number; weightedTargetROI: number; totalClicksForWeight: number; weightedPcvr: number; } } = {};
     
     results.forEach((r) => {
         if (!totals[r.day]) {
-            totals[r.day] = { day: r.day, spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0, dayGmv: 0 };
+            totals[r.day] = { day: r.day, spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0, weightedPcvr: 0 };
         }
         const dayTotal = totals[r.day];
         dayTotal.spend += r.spend;
         dayTotal.clicks += r.clicks;
         dayTotal.orders += r.orders;
         dayTotal.weightedTargetROI += r.targetROI * r.clicks;
+        dayTotal.weightedPcvr += r.pCvr * r.clicks;
         dayTotal.totalClicksForWeight += r.clicks;
-        dayTotal.dayGmv += r.gmv;
+        dayTotal.gmv += r.gmv;
     });
 
     return Object.values(totals);
@@ -604,6 +607,8 @@ export default function MultiDaySimulator() {
                                 <TableHead>Day</TableHead>
                                 <TableHead className="text-right">Delivered ROI</TableHead>
                                 <TableHead className="text-right">Avg. Target ROI</TableHead>
+                                <TableHead className="text-right">Avg. Clicks-Wt pCVR</TableHead>
+                                <TableHead className="text-right">Actual O/C</TableHead>
                                 <TableHead className="text-right">Orders</TableHead>
                                 <TableHead className="text-right">Clicks</TableHead>
                                 <TableHead className="text-right">Spends</TableHead>
@@ -613,18 +618,22 @@ export default function MultiDaySimulator() {
                         </TableHeader>
                         <TableBody>
                             {dailyTotals.map((day, index) => {
-                                const deliveredROI = day.spend > 0 ? day.dayGmv / day.spend : 0;
+                                const deliveredROI = day.spend > 0 ? day.gmv / day.spend : 0;
                                 const budgetUtilisation = form.getValues('dailyBudget') > 0 ? day.spend / form.getValues('dailyBudget') : 0;
                                 const avgTargetROI = day.totalClicksForWeight > 0 ? day.weightedTargetROI / day.totalClicksForWeight : 0;
+                                const weightedPcvr = day.totalClicksForWeight > 0 ? day.weightedPcvr / day.totalClicksForWeight : 0;
+                                const ordersToClicksRatio = day.clicks > 0 ? day.orders / day.clicks : 0;
                                 return (
                                     <TableRow key={`day-total-${index}`}>
                                         <TableCell>Day {day.day}</TableCell>
                                         <TableCell className="text-right">{formatRoi(deliveredROI)}</TableCell>
                                         <TableCell className="text-right">{formatRoi(avgTargetROI)}</TableCell>
+                                        <TableCell className="text-right">{formatSmallPercent(weightedPcvr)}</TableCell>
+                                        <TableCell className="text-right">{formatSmallPercent(ordersToClicksRatio)}</TableCell>
                                         <TableCell className="text-right">{day.orders.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{day.clicks.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.spend)}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(day.dayGmv)}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(day.gmv)}</TableCell>
                                         <TableCell className="text-right">{formatPercent(budgetUtilisation)}</TableCell>
                                     </TableRow>
                                 )
@@ -646,7 +655,7 @@ export default function MultiDaySimulator() {
           </div>
         )}
 
-        {!isLoading && leaderboard.length > 0 && (
+        {leaderboard.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Saved Runs</CardTitle>

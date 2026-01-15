@@ -287,6 +287,7 @@ export async function* runMultiDaySimulation(
       gmv: gmv,
       spend: spend,
       avgBid: bid,
+      pCvr: pCvr,
       dayCumulativeClicks: dayCumulativeClicks,
       dayCumulativeGmv: dayCumulativeGmv,
       dayCumulativeSpend: dayCumulativeSpend,
@@ -295,5 +296,6 @@ export async function* runMultiDaySimulation(
     lastIntervals[i] = result;
     yield result;
   }
+  // yield undefined;
 }
     
