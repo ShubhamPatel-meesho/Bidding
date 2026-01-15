@@ -67,8 +67,11 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
   for (let i = 0; i < roiTargets.length; i++) {
     const targetROI = roiTargets[i];
     
+    // Get the first hour of the current window to pass to getAdjustedPCVR
+    const hourForWindow = i * HOURS_PER_WINDOW;
+
     // 1. Get Contextual pCVR based on Target ROI, AOV, and the time window
-    const pCVRResponse = await getAdjustedPCVR(targetROI, aov, i, 0.015, 0); // Using defaults for single day sim
+    const pCVRResponse = await getAdjustedPCVR(targetROI, aov, hourForWindow, 0.015, 0); // Using defaults for single day sim
     let contextualPCVR: number;
     if ('error' in pCVRResponse) {
         hasError = true;
@@ -176,7 +179,7 @@ export async function* runMultiDaySimulation(
   // --- WARM-UP PHASE ---
   // Pre-populate history to achieve the initialDeliveredRoi
   if (initialDeliveredRoi > 0 && nValue > 0) {
-    const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 1, basePCVR, calibrationError); // Use peak time for initial guess
+    const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 13, basePCVR, calibrationError); // Use peak time for initial guess
     const initialPCVR = initialPCVRResponse.adjustedPCVR;
     const initialBid = initialPCVR * (aov / initialTargetRoi);
     const warmupSpend = nValue * initialBid;
@@ -228,8 +231,7 @@ export async function* runMultiDaySimulation(
     }
 
     // --- Core Bid & Click Simulation for Interval ---
-    const windowIndex = Math.floor(hour / HOURS_PER_WINDOW);
-    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, windowIndex, basePCVR, calibrationError);
+    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, hour, basePCVR, calibrationError);
     const pCvr = intervalPCVRResponse.adjustedPCVR;
     const bid = pCvr * (aov / currentTargetRoi);
     
@@ -321,7 +323,9 @@ export async function* runMultiDaySimulation(
       dayBudgetUtilisation: dayBudgetUtilisation,
     };
     lastIntervals[i] = result;
-    yield result;
+    if (i < totalIntervals) {
+      yield result;
+    }
   }
 }
     

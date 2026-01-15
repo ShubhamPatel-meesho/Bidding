@@ -4,13 +4,33 @@
 const BASE_AOV = 300; // The AOV at which BASE_PCVR is applicable
 const BASELINE_ROI = 5; // A typical or average ROI target
 
-// Based on click potential, but we can use it to model CVR potential too.
-// Peak conversion intent is in the morning.
-const pCVR_MODIFIER_BY_WINDOW = [
+// Based on the ad_clicks graph, modeling purchase intent throughout the day.
+// Higher values indicate peak conversion intent, aligned with peak click times.
+const pCVR_MODIFIER_BY_HOUR = [
   0.85, // 0-6h: Lower intent
+  0.85,
+  0.85,
+  0.85,
+  0.85,
+  0.85,
   1.15, // 6-12h: Peak intent
+  1.15,
+  1.15,
+  1.15,
+  1.15,
+  1.15,
   1.05, // 12-18h: Still high, but dropping
+  1.05,
+  1.05,
+  1.05,
+  1.05,
+  1.05,
   0.95, // 18-24h: Dropping off
+  0.95,
+  0.95,
+  0.95,
+  0.95,
+  0.95,
 ];
 
 
@@ -18,7 +38,7 @@ const pCVR_MODIFIER_BY_WINDOW = [
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
 // The pCVR is adjusted based on AOV and the aggressiveness of the Target ROI.
-export async function getAdjustedPCVR(targetROI: number, aov: number, windowIndex: number, basePCVR: number, calibrationError: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
+export async function getAdjustedPCVR(targetROI: number, aov: number, hour: number, basePCVR: number, calibrationError: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
   try {
     // 1. Adjust base pCVR based on AOV. Higher AOV means customers are expected to be more selective.
     // For every 100 rupees increase in AOV over the base, decrease pCVR by 10% of the base.
@@ -40,7 +60,7 @@ export async function getAdjustedPCVR(targetROI: number, aov: number, windowInde
     const biasedPCVR = aovAdjustedPCVR * (1 + bias);
 
     // 3. Apply the time-of-day modifier
-    const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_WINDOW[windowIndex];
+    const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_HOUR[hour];
 
     // 4. Apply calibration error
     const errorAdjustedPCVR = timeAdjustedPCVR * (1 + randomInRange(-calibrationError, calibrationError));
