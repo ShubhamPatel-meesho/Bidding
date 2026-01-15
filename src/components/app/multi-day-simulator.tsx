@@ -44,7 +44,8 @@ const formSchema = z.object({
   dailyBudget: z.coerce.number().positive({ message: "Must be positive" }),
   aov: z.coerce.number().positive({ message: "AOV must be positive" }),
   basePCVR: z.coerce.number().min(0, { message: "Must be non-negative" }),
-  calibrationError: z.coerce.number().min(0).max(100, { message: "Must be between 0 and 100" }),
+  overallError: z.coerce.number(), // Can be positive or negative
+  volatility: z.coerce.number().min(0).max(100, { message: "Must be between 0 and 100" }),
   pacingP: z.coerce.number().min(0),
   pacingI: z.coerce.number().min(0),
   pacingD: z.coerce.number().min(0),
@@ -172,7 +173,8 @@ export default function MultiDaySimulator() {
         ...selectedEntry,
         name: selectedEntry.name || `Clone of ${selectedEntry.id.substring(0,4)}`,
         basePCVR: selectedEntry.basePCVR * 100, // convert back to percentage for display
-        calibrationError: selectedEntry.calibrationError * 100, // convert back to percentage for display
+        overallError: selectedEntry.overallError * 100, // convert back to percentage for display
+        volatility: selectedEntry.volatility * 100, // convert back to percentage for display
         bpP: selectedEntry.bpP ?? 20,
         modules: selectedEntry.modules ?? ['rp', 'bp'],
         bpKValue: selectedEntry.bpKValue ?? 75,
@@ -196,7 +198,8 @@ export default function MultiDaySimulator() {
       const simulationParams = {
         ...data,
         basePCVR: data.basePCVR / 100, // Convert from % to decimal
-        calibrationError: data.calibrationError / 100, // Convert from % to decimal
+        overallError: data.overallError / 100, // Convert from % to decimal
+        volatility: data.volatility / 100, // Convert from % to decimal
       };
       
       const simulationGenerator = runMultiDaySimulation(simulationParams);
@@ -273,7 +276,8 @@ export default function MultiDaySimulator() {
         ...lastRunData,
         results: results,
         basePCVR: lastRunData.basePCVR / 100,
-        calibrationError: lastRunData.calibrationError / 100,
+        overallError: lastRunData.overallError / 100,
+        volatility: lastRunData.volatility / 100,
     };
     
     setLeaderboard(current => [newEntry, ...current].sort((a, b) => b.finalDeliveredROI - a.finalDeliveredROI).slice(0, 20));
@@ -497,13 +501,13 @@ export default function MultiDaySimulator() {
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-sm font-medium mb-2">pCVR Configuration</p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
+                    <div className="grid grid-cols-1 gap-4">
+                       <FormField
                         control={form.control}
                         name="basePCVR"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Base pCVR</FormLabel>
+                            <FormLabel>Base pCVR (for Bidding)</FormLabel>
                              <FormControl>
                               <div className="relative">
                                 <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -514,22 +518,40 @@ export default function MultiDaySimulator() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="calibrationError"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Calib. Error</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input type="number" step="1" {...field} className="pl-8" />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="overallError"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Overall Error</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  <Input type="number" step="1" {...field} className="pl-8" />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="volatility"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Volatility</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  <Input type="number" step="1" {...field} className="pl-8" />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

@@ -57,7 +57,8 @@ export type MultiDaySimulationParams = {
   dailyBudget: number;
   aov: number;
   basePCVR: number;
-  calibrationError: number;
+  overallError: number;
+  volatility: number;
   pacingP: number;
   pacingI: number;
   pacingD: number;
