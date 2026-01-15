@@ -1,7 +1,6 @@
 
 'use server';
 
-const BASE_AOV = 300; // The AOV at which BASE_PCVR is applicable
 const BASELINE_ROI = 5; // A typical or average ROI target
 
 // Based on the ObyC (Orders by Clicks) graph, modeling conversion rate throughout the day.
@@ -40,12 +39,7 @@ const randomInRange = (min: number, max: number) => Math.random() * (max - min) 
 // The pCVR is adjusted based on AOV and the aggressiveness of the Target ROI.
 export async function getAdjustedPCVR(targetROI: number, aov: number, hour: number, basePCVR: number, calibrationError: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
   try {
-    // 1. Adjust base pCVR based on AOV. Higher AOV means customers are expected to be more selective.
-    // For every 100 rupees increase in AOV over the base, decrease pCVR by 10% of the base.
-    const aovFactor = Math.max(0, (aov - BASE_AOV) / 100);
-    const aovAdjustedPCVR = basePCVR * (1 - (aovFactor * 0.1));
-
-    // 2. Create a non-linear bias based on how much the targetROI deviates from the baseline.
+    // 1. Create a non-linear bias based on how much the targetROI deviates from the baseline.
     // A much higher ROI target implies focusing on a very specific, high-intent audience, increasing pCVR.
     // A lower ROI target is more aggressive, bidding on a wider audience, thus lowering the average pCVR.
     let roiDifference = (targetROI - BASELINE_ROI) / BASELINE_ROI; // a percentage difference
@@ -57,12 +51,12 @@ export async function getAdjustedPCVR(targetROI: number, aov: number, hour: numb
     // Limit the bias to prevent extreme values.
     bias = Math.max(-0.5, Math.min(0.5, bias));
 
-    const biasedPCVR = aovAdjustedPCVR * (1 + bias);
+    const biasedPCVR = basePCVR * (1 + bias);
 
-    // 3. Apply the time-of-day modifier
+    // 2. Apply the time-of-day modifier
     const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_HOUR[hour];
 
-    // 4. Apply calibration error
+    // 3. Apply calibration error
     const errorAdjustedPCVR = timeAdjustedPCVR * (1 + randomInRange(-calibrationError, calibrationError));
 
 
