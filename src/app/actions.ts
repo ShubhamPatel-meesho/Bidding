@@ -37,7 +37,7 @@ const pCVR_MODIFIER_BY_HOUR = [
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
 // The pCVR is adjusted based on AOV and the aggressiveness of the Target ROI.
-export async function getAdjustedPCVR(targetROI: number, aov: number, hour: number, basePCVR: number, calibrationError: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
+export async function getAdjustedPCVR(targetROI: number, aov: number, hour: number, basePCVR: number): Promise<{ adjustedPCVR: number } | { error: string, adjustedPCVR: number }> {
   try {
     // 1. Apply a subtle ROI target bias using a logarithmic scale for diminishing returns
     const roiRatio = targetROI / BASELINE_ROI;
@@ -47,12 +47,7 @@ export async function getAdjustedPCVR(targetROI: number, aov: number, hour: numb
     // 2. Apply the time-of-day modifier
     const timeAdjustedPCVR = biasedPCVR * pCVR_MODIFIER_BY_HOUR[hour];
 
-    // 3. Apply calibration error as a multiplicative factor.
-    // A 100% error (calibrationError = 1.0) will result in a multiplier between 0x and 2x.
-    const errorMultiplier = 1 + randomInRange(-calibrationError, calibrationError);
-    const errorAdjustedPCVR = timeAdjustedPCVR * errorMultiplier;
-
-    return { adjustedPCVR: Math.max(0.0001, errorAdjustedPCVR) }; // Ensure pCVR doesn't go below a very small number
+    return { adjustedPCVR: Math.max(0.0001, timeAdjustedPCVR) }; // Ensure pCVR doesn't go below a very small number
   } catch (e) {
     console.error('Error in getAdjustedPCVR:', e);
     return { error: 'Failed to get adjustment. Using base pCVR.', adjustedPCVR: basePCVR };

@@ -1,5 +1,6 @@
 
 
+
 import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
 
@@ -66,7 +67,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
     const hourForWindow = i * HOURS_PER_WINDOW;
 
     // 1. Get Contextual pCVR
-    const pCVRResponse = await getAdjustedPCVR(targetROI, aov, hourForWindow, 0.015, 0); // Using defaults for single day sim
+    const pCVRResponse = await getAdjustedPCVR(targetROI, aov, hourForWindow, 0.015); // Using defaults for single day sim
     let contextualPCVR: number;
     if ('error' in pCVRResponse) {
         hasError = true;
@@ -168,7 +169,7 @@ export async function* runMultiDaySimulation(
   
   // --- WARM-UP PHASE ---
   if (initialDeliveredRoi > 0 && nValue > 0) {
-    const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 13, basePCVR, calibrationError); // Use peak time for initial guess
+    const initialPCVRResponse = await getAdjustedPCVR(initialTargetRoi, aov, 13, basePCVR); // Use peak time for initial guess
     const initialPCVR = initialPCVRResponse.adjustedPCVR;
     const initialBid = initialPCVR * (aov / initialTargetRoi);
     const warmupSpend = nValue * initialBid;
@@ -232,8 +233,7 @@ export async function* runMultiDaySimulation(
         const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
         // BP ONLY applies in overspend condition.
         if (bpError > 0) {
-            const bpAdjustment = bpP * bpError;
-            potentialBpTargetRoi = currentTargetRoi + bpAdjustment;
+            potentialBpTargetRoi = currentTargetRoi + (bpP * bpError);
         }
     }
     
@@ -263,7 +263,7 @@ export async function* runMultiDaySimulation(
 
 
     // --- Core Bid & Click Simulation for Interval ---
-    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, hour, basePCVR, calibrationError);
+    const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, hour, basePCVR);
     const pCvr = intervalPCVRResponse.adjustedPCVR;
     const bid = pCvr * (aov / currentTargetRoi);
     
@@ -292,7 +292,10 @@ export async function* runMultiDaySimulation(
     clicksSinceLastRpUpdate += clicks;
     clicksSinceLastBpUpdate += clicks;
     
-    const actualCVR = pCvr * randomInRange(0.9, 1.1);
+    // Apply calibration error here to get the "actual" CVR
+    const errorMultiplier = 1 + randomInRange(-calibrationError, calibrationError);
+    const actualCVR = pCvr * errorMultiplier;
+    
     const fractionalOrders = clicks * actualCVR + orderCarryOver;
     const orders = Math.floor(fractionalOrders);
     orderCarryOver = fractionalOrders - orders;
