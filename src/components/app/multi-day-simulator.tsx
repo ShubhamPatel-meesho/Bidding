@@ -93,6 +93,11 @@ export default function MultiDaySimulator() {
   const [results, setResults] = useState<TimeIntervalResult[] | null>(null);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [leaderboard, setLeaderboard] = useLocalStorage<MultiDayLeaderboardEntry[]>('multiday-leaderboard', []);
   const [lastRunData, setLastRunData] = useState<MultiDayFormValues | null>(null);
@@ -463,14 +468,14 @@ export default function MultiDaySimulator() {
                             <FormItem>
                                <div className="flex items-center gap-1">
                                 <FormLabel>N</FormLabel>
-                                <Tooltip>
+                                <UiTooltip>
                                   <TooltipTrigger asChild>
                                     <HelpCircle className="w-3 h-3 text-muted-foreground" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Clicks for ROI calculation</p>
                                   </TooltipContent>
-                                </Tooltip>
+                                </UiTooltip>
                               </div>
                               <FormControl>
                                 <Input type="number" {...field} />
@@ -486,14 +491,14 @@ export default function MultiDaySimulator() {
                             <FormItem>
                                <div className="flex items-center gap-1">
                                 <FormLabel>K</FormLabel>
-                                 <Tooltip>
+                                 <UiTooltip>
                                   <TooltipTrigger asChild>
                                     <HelpCircle className="w-3 h-3 text-muted-foreground" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Clicks for PID update</p>
                                   </TooltipContent>
-                                </Tooltip>
+                                </UiTooltip>
                               </div>
                               <FormControl>
                                 <Input type="number" {...field} />
@@ -655,7 +660,7 @@ export default function MultiDaySimulator() {
           </div>
         )}
 
-        {leaderboard.length > 0 && (
+        {isMounted && leaderboard.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Saved Runs</CardTitle>
