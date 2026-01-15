@@ -141,7 +141,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 // --- New Multi-Day Simulator ---
 export async function* runMultiDaySimulation(
     params: MultiDaySimulationParams
-): AsyncGenerator<TimeIntervalResult> {
+): AsyncGenerator<TimeIntervalResult, void, TimeIntervalResult | undefined> {
   const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, basePCVR, calibrationError } = params;
 
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
@@ -172,6 +172,8 @@ export async function* runMultiDaySimulation(
 
   const totalIntervals = numDays * 24 * INTERVALS_PER_HOUR;
   
+  let lastIntervals: {[key: number]: TimeIntervalResult} = {};
+
   for (let i = 0; i < totalIntervals; i++) {
     const day = Math.floor(i / (24 * INTERVALS_PER_HOUR)) + 1;
     const hour = Math.floor((i % (24 * INTERVALS_PER_HOUR)) / INTERVALS_PER_HOUR);
@@ -180,7 +182,8 @@ export async function* runMultiDaySimulation(
     const isNewDay = intervalIndexInDay === 0;
     
     // Get cumulative data from the PREVIOUS interval of the SAME day
-    const prevIntervalOfDay = i > 0 && !isNewDay ? yield i as unknown as TimeIntervalResult : null;
+    const prevIntervalOfDay = (i > 0 && !isNewDay) ? lastIntervals[i-1] : null;
+
     const dailySpend = prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeSpend : 0;
     const remainingDailyBudget = dailyBudget - dailySpend;
 
@@ -264,16 +267,14 @@ export async function* runMultiDaySimulation(
     }
     
     const dayCumulativeSpend = dailySpend + spend;
-    const dayGmv = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeGmv : 0) - (prevIntervalOfDay ? prevIntervalOfDay.gmv : 0) + gmv;
-    const daySpendForROI = dayCumulativeSpend - (prevIntervalOfDay ? prevIntervalOfDay.spend : 0) + spend;
-    const dayROI = daySpendForROI > 0 ? dayGmv / daySpendForROI : 0;
+    const dayCumulativeGmv = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeGmv : 0) + gmv;
+    const dayROI = dayCumulativeSpend > 0 ? dayCumulativeGmv / dayCumulativeSpend : 0;
     
     const dayCumulativeClicks = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeClicks : 0) + clicks;
-    const dayCumulativeGmv = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeGmv : 0) + gmv;
     const dayBudgetUtilisation = dailyBudget > 0 ? dayCumulativeSpend / dailyBudget : 0;
     
     const result: TimeIntervalResult = {
-      timestamp: intervalIndexInDay,
+      timestamp: i,
       day: day,
       hour: hour,
       label: `D${day} H${hour}`,
@@ -291,6 +292,7 @@ export async function* runMultiDaySimulation(
       dayCumulativeSpend: dayCumulativeSpend,
       dayBudgetUtilisation: dayBudgetUtilisation,
     };
+    lastIntervals[i] = result;
     yield result;
   }
 }

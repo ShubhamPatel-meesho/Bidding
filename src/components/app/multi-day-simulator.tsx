@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -117,8 +118,9 @@ export default function MultiDaySimulator() {
       let processedIntervals = 0;
 
       const processChunk = async () => {
+        let result: IteratorResult<TimeIntervalResult, void>;
         for (let i = 0; i < 48; i++) { // Process one day at a time for smoother updates
-            const result = await simulationGenerator.next();
+            result = await simulationGenerator.next();
             if (!result.done) {
                 tempResults.push(result.value);
                 processedIntervals++;
@@ -130,7 +132,7 @@ export default function MultiDaySimulator() {
         setResults([...tempResults]);
         setProgress((processedIntervals / totalIntervals) * 100);
 
-        if (processedIntervals < totalIntervals) {
+        if (processedIntervals < totalIntervals && !result.done) {
             requestAnimationFrame(processChunk);
         } else {
             setIsLoading(false);
@@ -290,10 +292,10 @@ export default function MultiDaySimulator() {
                           <FormItem>
                             <FormLabel>Calib. Error</FormLabel>
                             <FormControl>
-                              <div className="relative">
+                               <div className="relative">
                                 <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input type="number" step="1" {...field} className="pl-8" />
-                              </div>
+                               </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -360,14 +362,14 @@ export default function MultiDaySimulator() {
                             <FormItem>
                               <div className="flex items-center gap-1">
                                 <FormLabel>N</FormLabel>
-                                <UiTooltip>
+                                <Tooltip>
                                   <TooltipTrigger asChild>
                                     <HelpCircle className="w-3 h-3 text-muted-foreground" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Clicks for ROI calculation</p>
                                   </TooltipContent>
-                                </UiTooltip>
+                                </Tooltip>
                               </div>
                               <FormControl>
                                 <Input type="number" {...field} />
@@ -381,16 +383,16 @@ export default function MultiDaySimulator() {
                           name="kValue"
                           render={({ field }) => (
                             <FormItem>
-                              <div className="flex items-center gap-1">
+                               <div className="flex items-center gap-1">
                                 <FormLabel>K</FormLabel>
-                                <UiTooltip>
+                                <Tooltip>
                                   <TooltipTrigger asChild>
                                     <HelpCircle className="w-3 h-3 text-muted-foreground" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Clicks for PID update</p>
                                   </TooltipContent>
-                                </UiTooltip>
+                                </Tooltip>
                               </div>
                               <FormControl>
                                 <Input type="number" {...field} />
