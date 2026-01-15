@@ -162,7 +162,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 export async function* runMultiDaySimulation(
     params: MultiDaySimulationParams
 ): AsyncGenerator<TimeIntervalResult | undefined, void, undefined> {
-  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, bpP, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, basePCVR, calibrationError, modules } = params;
+  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, bpP, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, bpKValue, basePCVR, calibrationError, modules } = params;
 
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
   
@@ -182,8 +182,9 @@ export async function* runMultiDaySimulation(
     });
   }
   
-  let clicksSinceLastUpdate = 0;
-  let lastIntervalTargetRoi = initialTargetRoi;
+  let clicksSinceLastRpUpdate = 0;
+  let clicksSinceLastBpUpdate = 0;
+  let currentTargetRoi = initialTargetRoi;
   let deliveredRoi = initialDeliveredRoi; 
   let integralError = 0;
   let previousError = 0;
@@ -209,54 +210,62 @@ export async function* runMultiDaySimulation(
 
 
     // --- Pacing Logic ---
-    let activeModule: 'RP' | 'BP' | 'None' = 'None';
-    let currentTargetRoi = lastIntervalTargetRoi;
-
-    // Calculate ROI Pacing Target
-    let rpTargetRoi = lastIntervalTargetRoi;
-    if (clicksSinceLastUpdate >= kValue && recentHistory.length > 0) {
+    let potentialRpTargetRoi: number | null = null;
+    let potentialBpTargetRoi: number | null = null;
+    
+    // --- ROI Pacing (RP) Target Calculation ---
+    if (clicksSinceLastRpUpdate >= kValue && recentHistory.length > 0) {
       const error = (slRoi - deliveredRoi) / slRoi;
       integralError += error;
       const derivativeError = error - previousError;
       
       const adjustment = (pacingP * error) + (pacingI * integralError) + (pacingD * derivativeError);
-      rpTargetRoi = lastIntervalTargetRoi * (1 + adjustment);
+      potentialRpTargetRoi = currentTargetRoi * (1 + adjustment);
       
       previousError = error;
-      clicksSinceLastUpdate = 0; // Reset after update
+      clicksSinceLastRpUpdate = 0; // Will be reset after potential application
     }
 
-    // Calculate Budget Pacing Target
-    let bpTargetRoi = lastIntervalTargetRoi;
-    const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
-    const bpAdjustment = bpP * bpError;
-    bpTargetRoi = lastIntervalTargetRoi * (1 + bpAdjustment);
+    // --- Budget Pacing (BP) Target Calculation ---
+    if (clicksSinceLastBpUpdate >= bpKValue) {
+        const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
+        const bpAdjustment = bpP * bpError;
+        potentialBpTargetRoi = currentTargetRoi * (1 + bpAdjustment);
+        clicksSinceLastBpUpdate = 0; // Will be reset after potential application
+    }
     
-    // --- Module Selection Logic ---
-    const isOverspending = dayBudgetUtilisation > idealBudgetUtilisation;
+    // --- Module Selection & Target Application Logic ---
     const useRP = modules.includes('rp');
     const useBP = modules.includes('bp');
-
+    let activeModule: 'RP' | 'BP' | 'None' = 'None';
+    
     if (useRP && useBP) {
         if (deliveredRoi <= slRoi) {
             activeModule = 'RP';
-            currentTargetRoi = rpTargetRoi;
-        } else if (isOverspending) {
+        } else if (dayBudgetUtilisation > idealBudgetUtilisation) { // Overspending
             activeModule = 'BP';
-            currentTargetRoi = bpTargetRoi;
         } else { // Underspending and ROI is fine
             activeModule = 'RP';
-            currentTargetRoi = rpTargetRoi;
         }
     } else if (useRP) {
         activeModule = 'RP';
-        currentTargetRoi = rpTargetRoi;
     } else if (useBP) {
         activeModule = 'BP';
-        currentTargetRoi = bpTargetRoi;
-    } else {
-        activeModule = 'None';
-        currentTargetRoi = lastIntervalTargetRoi;
+    }
+
+    // Apply the update only if the correct module is active at the time of update
+    if (activeModule === 'RP' && potentialRpTargetRoi !== null) {
+        currentTargetRoi = potentialRpTargetRoi;
+    } else if (activeModule === 'BP' && potentialBpTargetRoi !== null) {
+        currentTargetRoi = potentialBpTargetRoi;
+    }
+
+    // Reset counters if their update was calculated but not applied
+    if (potentialRpTargetRoi !== null && activeModule !== 'RP') {
+        clicksSinceLastRpUpdate = 0;
+    }
+     if (potentialBpTargetRoi !== null && activeModule !== 'BP') {
+        clicksSinceLastBpUpdate = 0;
     }
 
 
@@ -286,6 +295,10 @@ export async function* runMultiDaySimulation(
     const clicks = Math.floor(Math.max(0, Math.min(maxIntervalClicks, affordableClicks)));
     const spend = clicks * bid;
     
+    // Update continuous click counters
+    clicksSinceLastRpUpdate += clicks;
+    clicksSinceLastBpUpdate += clicks;
+    
     const actualCVR = pCvr * randomInRange(0.9, 1.1);
     const fractionalOrders = clicks * actualCVR + orderCarryOver;
     const orders = Math.floor(fractionalOrders);
@@ -294,7 +307,6 @@ export async function* runMultiDaySimulation(
     
     if (clicks > 0) {
       recentHistory.push({ spend, gmv, clicks, orders });
-      clicksSinceLastUpdate += clicks;
     }
 
     let rollingClicks = 0;
@@ -332,8 +344,6 @@ export async function* runMultiDaySimulation(
     const finalDayCumulativeClicks = (prevIntervalOfDay ? prevIntervalOfDay.dayCumulativeClicks : 0) + clicks;
     const finalDayBudgetUtilisation = dailyBudget > 0 ? finalDayCumulativeSpend / dailyBudget : 0;
     
-    lastIntervalTargetRoi = currentTargetRoi;
-
     const result: TimeIntervalResult = {
       timestamp: i,
       day: day,

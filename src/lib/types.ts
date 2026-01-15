@@ -65,6 +65,7 @@ export type MultiDaySimulationParams = {
   numDays: number;
   nValue: number;
   kValue: number;
+  bpKValue: number;
   modules: string[];
 };
 

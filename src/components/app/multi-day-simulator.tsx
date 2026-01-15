@@ -50,6 +50,7 @@ const formSchema = z.object({
   bpP: z.coerce.number().min(0),
   nValue: z.coerce.number().positive({ message: "Must be positive" }),
   kValue: z.coerce.number().positive({ message: "Must be positive" }),
+  bpKValue: z.coerce.number().positive({ message: "Must be positive" }),
   numDays: z.coerce.number().positive().int().min(1, "At least 1 day"),
   modules: z.array(z.string()).refine(value => value.some(item => item), {
     message: "You have to select at least one module.",
@@ -134,6 +135,7 @@ export default function MultiDaySimulator() {
       bpP: 20,
       nValue: 3000,
       kValue: 600,
+      bpKValue: 75,
       numDays: 3,
       modules: ['rp', 'bp'],
     },
@@ -148,6 +150,7 @@ export default function MultiDaySimulator() {
         calibrationError: selectedEntry.calibrationError * 100, // convert back to percentage for display
         bpP: selectedEntry.bpP ?? 20,
         modules: selectedEntry.modules ?? ['rp', 'bp'],
+        bpKValue: selectedEntry.bpKValue ?? 75,
       });
       if(selectedEntry.results) {
           setResults(selectedEntry.results);
@@ -550,7 +553,7 @@ export default function MultiDaySimulator() {
                   <CardContent className="pt-6">
                     <TooltipProvider>
                       <p className="text-sm font-medium mb-2">PID Windowing</p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <FormField
                           control={form.control}
                           name="nValue"
@@ -582,7 +585,7 @@ export default function MultiDaySimulator() {
                           render={({ field }) => (
                             <FormItem>
                                <div className="flex items-center gap-1">
-                                <FormLabel>K</FormLabel>
+                                <FormLabel>RP K</FormLabel>
                                  <UiTooltip>
                                   <TooltipTrigger asChild>
                                     <button type="button">
@@ -590,7 +593,32 @@ export default function MultiDaySimulator() {
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Clicks for PID update</p>
+                                    <p>Clicks for RP update</p>
+                                  </TooltipContent>
+                                </UiTooltip>
+                              </div>
+                              <FormControl>
+                                <Input type="number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                         <FormField
+                          control={form.control}
+                          name="bpKValue"
+                          render={({ field }) => (
+                            <FormItem>
+                               <div className="flex items-center gap-1">
+                                <FormLabel>BP K</FormLabel>
+                                 <UiTooltip>
+                                  <TooltipTrigger asChild>
+                                    <button type="button">
+                                      <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Clicks for BP update</p>
                                   </TooltipContent>
                                 </UiTooltip>
                               </div>
