@@ -158,20 +158,21 @@ export default function MultiDaySimulator() {
       const totalIntervals = data.numDays * 48;
       let processedIntervals = 0;
       
-      let result: IteratorResult<TimeIntervalResult | undefined, void> = { done: false, value: undefined };
+      let result: IteratorResult<TimeIntervalResult | undefined, void>;
 
       const processChunk = async () => {
         // Process a chunk of intervals to make rendering smoother
         const chunkSize = 48; // one day
         let chunkProcessed = 0;
         
-        while(chunkProcessed < chunkSize && !result.done) {
+        while(chunkProcessed < chunkSize) {
            result = await simulationGenerator.next();
            if (result.value) {
                 tempResults.push(result.value);
                 processedIntervals++;
            }
            chunkProcessed++;
+           if (result.done) break;
         }
         
         setResults([...tempResults]);
@@ -204,9 +205,9 @@ export default function MultiDaySimulator() {
         finalDeliveredROI: finalInterval.deliveredROI,
         finalBudgetUtilisation: finalInterval.dayBudgetUtilisation, // This is for the last day
         ...lastRunData,
+        results: results,
         basePCVR: lastRunData.basePCVR / 100,
         calibrationError: lastRunData.calibrationError / 100,
-        results: results,
     };
     
     setLeaderboard(current => [newEntry, ...current].sort((a, b) => b.finalDeliveredROI - a.finalDeliveredROI).slice(0, 20));
@@ -234,23 +235,25 @@ export default function MultiDaySimulator() {
 
   const dailyTotals = useMemo(() => {
     if (!results || results.length === 0) return [];
-    const totals: { [key: number]: { day: number; spend: number; gmv: number; clicks: number; orders: number; weightedTargetROI: number; totalClicksForWeight: number; weightedPcvr: number; } } = {};
     
-    results.forEach((r) => {
-        if (!totals[r.day]) {
-            totals[r.day] = { day: r.day, spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0, weightedPcvr: 0 };
-        }
-        const dayTotal = totals[r.day];
-        dayTotal.spend += r.spend;
-        dayTotal.clicks += r.clicks;
-        dayTotal.orders += r.orders;
-        dayTotal.weightedTargetROI += r.targetROI * r.clicks;
-        dayTotal.weightedPcvr += r.pCvr * r.clicks;
-        dayTotal.totalClicksForWeight += r.clicks;
-        dayTotal.gmv += r.gmv;
+    const dayData: { [key: number]: { spend: number, gmv: number, clicks: number, orders: number, weightedTargetROI: number, totalClicksForWeight: number, weightedPcvr: number, dayCumulativeGmv: number} } = {};
+    results.forEach(r => {
+      dayData[r.day] = dayData[r.day] || { spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0, weightedPcvr: 0, dayCumulativeGmv: 0 };
+      const day = dayData[r.day];
+      day.spend += r.spend;
+      day.gmv += r.gmv;
+      day.clicks += r.clicks;
+      day.orders += r.orders;
+      day.weightedTargetROI += r.targetROI * r.clicks;
+      day.weightedPcvr += r.pCvr * r.clicks;
+      day.totalClicksForWeight += r.clicks;
+      day.dayCumulativeGmv = r.dayCumulativeGmv;
     });
 
-    return Object.values(totals);
+    return Object.entries(dayData).map(([day, data]) => ({
+      day: parseInt(day, 10),
+      ...data
+    }));
   }, [results]);
 
   return (
@@ -559,7 +562,7 @@ export default function MultiDaySimulator() {
       </Card>
       
       <div className="w-full flex flex-col gap-8">
-        {isLoading && (
+        {isLoading && (!results || results.length === 0) && (
           <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
             <div className="w-full max-w-md p-8 text-center">
               <p className="text-lg font-semibold mb-2">Running {form.getValues('numDays')}-day simulation... ({progress.toFixed(0)}%)</p>
@@ -571,7 +574,7 @@ export default function MultiDaySimulator() {
           </div>
         )}
 
-        {results && results.length > 0 && !isLoading && (
+        {results && results.length > 0 && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">
             <Card>
                 <CardHeader>
@@ -643,7 +646,7 @@ export default function MultiDaySimulator() {
                                         <TableCell className="text-right">{day.orders.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{day.clicks.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.spend)}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(day.gmv)}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(day.dayCumulativeGmv)}</TableCell>
                                         <TableCell className="text-right">{formatPercent(budgetUtilisation)}</TableCell>
                                     </TableRow>
                                 )
@@ -655,7 +658,7 @@ export default function MultiDaySimulator() {
           </div>
         )}
         
-         {!isLoading && (!results || results.length === 0) && (
+         {!results || results.length === 0 && !isLoading &&(
           <div className="flex items-center justify-center h-full min-h-[60vh] bg-card rounded-lg border shadow-lg">
               <div className="text-center text-muted-foreground p-8">
                   <Cog className="mx-auto h-12 w-12 mb-4" />
