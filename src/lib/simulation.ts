@@ -212,9 +212,11 @@ export async function* runMultiDaySimulation(
     // --- Pacing Logic ---
     let potentialRpTargetRoi: number | null = null;
     let potentialBpTargetRoi: number | null = null;
+    const useRP = modules.includes('rp');
+    const useBP = modules.includes('bp');
     
     // --- ROI Pacing (RP) Target Calculation ---
-    if (clicksSinceLastRpUpdate >= kValue && recentHistory.length > 0) {
+    if (useRP && clicksSinceLastRpUpdate >= kValue && recentHistory.length > 0) {
       const error = (slRoi - deliveredRoi) / slRoi;
       integralError += error;
       const derivativeError = error - previousError;
@@ -227,7 +229,7 @@ export async function* runMultiDaySimulation(
     }
 
     // --- Budget Pacing (BP) Target Calculation ---
-    if (clicksSinceLastBpUpdate >= bpKValue) {
+    if (useBP && clicksSinceLastBpUpdate >= bpKValue) {
         const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
         const bpAdjustment = bpP * bpError;
         potentialBpTargetRoi = currentTargetRoi + bpAdjustment;
@@ -235,39 +237,36 @@ export async function* runMultiDaySimulation(
     }
     
     // --- Module Selection & Target Application Logic ---
-    const useRP = modules.includes('rp');
-    const useBP = modules.includes('bp');
     let activeModule: 'RP' | 'BP' | 'None' = 'None';
     
     if (useRP && !useBP) {
         activeModule = 'RP';
+        if (potentialRpTargetRoi !== null) {
+            currentTargetRoi = potentialRpTargetRoi;
+        }
     } else if (!useRP && useBP) {
         activeModule = 'BP';
+        if (potentialBpTargetRoi !== null) {
+            currentTargetRoi = potentialBpTargetRoi;
+        }
     } else if (useRP && useBP) {
         if (deliveredRoi <= slRoi) {
             activeModule = 'RP';
+            if (potentialRpTargetRoi !== null) {
+                currentTargetRoi = potentialRpTargetRoi;
+            }
         } else if (dayBudgetUtilisation > idealBudgetUtilisation) { // Overspending
             activeModule = 'BP';
+             if (potentialBpTargetRoi !== null) {
+                currentTargetRoi = potentialBpTargetRoi;
+            }
         } else { // Underspending and ROI is fine
             activeModule = 'RP';
+            if (potentialRpTargetRoi !== null) {
+                currentTargetRoi = potentialRpTargetRoi;
+            }
         }
     }
-
-    // Apply the update only if the correct module is active at the time of update
-    if (activeModule === 'RP' && potentialRpTargetRoi !== null) {
-        currentTargetRoi = potentialRpTargetRoi;
-    } else if (activeModule === 'BP' && potentialBpTargetRoi !== null) {
-        currentTargetRoi = potentialBpTargetRoi;
-    }
-
-    // Reset counters if their update was calculated but not applied
-    if (potentialRpTargetRoi !== null && activeModule !== 'RP') {
-        clicksSinceLastRpUpdate = 0;
-    }
-     if (potentialBpTargetRoi !== null && activeModule !== 'BP') {
-        clicksSinceLastBpUpdate = 0;
-    }
-
 
     // --- Core Bid & Click Simulation for Interval ---
     const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, hour, basePCVR, calibrationError);
@@ -350,7 +349,7 @@ export async function* runMultiDaySimulation(
       hour: hour,
       label: `D${day} H${hour}`,
       targetROI: currentTargetRoi,
-      deliveredROI: deliveredRoi,
+      deliveredROI: deliveredRoi, // Catalog ROI
       dayROI: dayROI,
       slRoi: slRoi,
       clicks: clicks,

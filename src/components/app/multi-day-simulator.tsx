@@ -67,6 +67,10 @@ const formatYAxisCurrency = (value: number) => {
     if (value >= 1000) return `₹${(value / 1000).toFixed(0)}k`;
     return `₹${value}`;
 };
+const formatYAxisNumber = (value: number) => {
+    if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
+    return value;
+}
 const formatPercent = (value: number) => `${(value * 100).toFixed(0)}%`;
 const formatSmallPercent = (value: number) => `${(value * 100).toFixed(2)}%`;
 
@@ -81,6 +85,7 @@ const seriesVisibilityInitialState: Record<string, boolean> = {
   deliveredROI: true,
   targetROI: true,
   slRoi: true,
+  dayCumulativeClicks: true,
 };
 
 type SeriesVisibility = typeof seriesVisibilityInitialState;
@@ -96,6 +101,7 @@ const CustomLegend = (props: any) => {
           'deliveredROI': 'Catalog ROI',
           'targetROI': 'ROI Target',
           'slRoi': 'ROI Min',
+          'dayCumulativeClicks': 'Daily Clicks',
       };
       const finalName = nameMapping[dataKey];
       if (!finalName) return null;
@@ -113,7 +119,7 @@ const CustomLegend = (props: any) => {
           )}
           onClick={() => onToggle(item.dataKey)}
         >
-          {item.type === 'line' ? (
+          {item.type === 'line' || item.type === 'area' ? (
               <div className="w-2.5 h-px" style={{backgroundColor: item.color}}></div>
           ) : (
              <span className="w-2.5 h-2.5" style={{ backgroundColor: item.color }}></span>
@@ -757,6 +763,7 @@ export default function MultiDaySimulator() {
                                 />
                                 <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" label={{ value: 'ROI', angle: -90, position: 'insideLeft' }} />
                                 <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" tickFormatter={formatYAxisCurrency} label={{ value: 'GMV', angle: 90, position: 'insideRight' }}/>
+                                 <YAxis yAxisId="clicks" orientation="right" stroke="hsl(var(--chart-3))" tickFormatter={formatYAxisNumber} label={{ value: 'Clicks', angle: 90, position: 'insideRight', offset: 40 }} />
                                 <Tooltip 
                                     content={<CustomChartTooltip />}
                                 />
@@ -771,6 +778,7 @@ export default function MultiDaySimulator() {
                                   </linearGradient>
                                 </defs>
                                 <Area yAxisId="right" type="monotone" dataKey="dayCumulativeGmv" name="Catalog GMV" stroke="hsl(var(--chart-2))" fill="url(#colorGmv)" hide={!visibleSeries.dayCumulativeGmv} />
+                                <Line yAxisId="clicks" type="monotone" dataKey="dayCumulativeClicks" name="Daily Clicks" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false} hide={!visibleSeries.dayCumulativeClicks} />
                                 <Bar yAxisId="left" dataKey="dayROI" name="Day ROI" fill="hsl(var(--chart-1))" hide={!visibleSeries.dayROI} />
                                 <Line yAxisId="left" type="monotone" dataKey="deliveredROI" name="Catalog ROI" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false} hide={!visibleSeries.deliveredROI} />
                                 <Line yAxisId="left" type="step" dataKey="targetROI" name="ROI Target" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false} hide={!visibleSeries.targetROI} />
