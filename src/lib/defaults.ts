@@ -11,7 +11,7 @@ export const MULTI_DAY_SIMULATOR_DEFAULTS = {
   pacingP: 0.2,
   pacingI: 0,
   pacingD: 0,
-  bpP: 20,
+  bpP: 10,
   nValue: 3000,
   kValue: 600,
   bpKValue: 75,
