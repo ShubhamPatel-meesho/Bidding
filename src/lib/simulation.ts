@@ -225,48 +225,42 @@ export async function* runMultiDaySimulation(
       potentialRpTargetRoi = currentTargetRoi * (1 + adjustment);
       
       previousError = error;
-      clicksSinceLastRpUpdate = 0; // Will be reset after potential application
     }
 
     // --- Budget Pacing (BP) Target Calculation ---
     if (useBP && clicksSinceLastBpUpdate >= bpKValue) {
         const bpError = dayBudgetUtilisation - idealBudgetUtilisation; // positive means overspending
-        const bpAdjustment = bpP * bpError;
-        potentialBpTargetRoi = currentTargetRoi + bpAdjustment;
-        clicksSinceLastBpUpdate = 0; // Will be reset after potential application
+        // BP ONLY applies in overspend condition.
+        if (bpError > 0) {
+            const bpAdjustment = bpP * bpError;
+            potentialBpTargetRoi = currentTargetRoi + bpAdjustment;
+        }
     }
     
     // --- Module Selection & Target Application Logic ---
     let activeModule: 'RP' | 'BP' | 'None' = 'None';
     
-    if (useRP && !useBP) {
-        activeModule = 'RP';
-        if (potentialRpTargetRoi !== null) {
-            currentTargetRoi = potentialRpTargetRoi;
-        }
-    } else if (!useRP && useBP) {
+    const isOverSpending = dayBudgetUtilisation > idealBudgetUtilisation;
+    const isBelowSlRoi = deliveredRoi <= slRoi;
+
+    if (useBP && isOverSpending && !isBelowSlRoi) {
         activeModule = 'BP';
         if (potentialBpTargetRoi !== null) {
             currentTargetRoi = potentialBpTargetRoi;
+            clicksSinceLastBpUpdate = 0;
         }
-    } else if (useRP && useBP) {
-        if (deliveredRoi <= slRoi) {
-            activeModule = 'RP';
-            if (potentialRpTargetRoi !== null) {
-                currentTargetRoi = potentialRpTargetRoi;
-            }
-        } else if (dayBudgetUtilisation > idealBudgetUtilisation) { // Overspending
-            activeModule = 'BP';
-             if (potentialBpTargetRoi !== null) {
-                currentTargetRoi = potentialBpTargetRoi;
-            }
-        } else { // Underspending and ROI is fine
-            activeModule = 'RP';
-            if (potentialRpTargetRoi !== null) {
-                currentTargetRoi = potentialRpTargetRoi;
-            }
+    } else if (useRP) {
+        activeModule = 'RP';
+        if (potentialRpTargetRoi !== null) {
+            currentTargetRoi = potentialRpTargetRoi;
+            clicksSinceLastRpUpdate = 0;
         }
     }
+    
+    // Reset counters if their potential updates were not used
+    if (activeModule !== 'BP' && potentialBpTargetRoi !== null) clicksSinceLastBpUpdate = 0;
+    if (activeModule !== 'RP' && potentialRpTargetRoi !== null) clicksSinceLastRpUpdate = 0;
+
 
     // --- Core Bid & Click Simulation for Interval ---
     const intervalPCVRResponse = await getAdjustedPCVR(currentTargetRoi, aov, hour, basePCVR, calibrationError);
@@ -371,4 +365,6 @@ export async function* runMultiDaySimulation(
     }
   }
 }
+    
+
     
