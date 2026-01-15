@@ -225,7 +225,7 @@ export default function MultiDaySimulator() {
 
   const dailyTotals = useMemo(() => {
     if (!results || results.length === 0) return [];
-    const totals: { [key: number]: { day: number; spend: number; gmv: number; clicks: number; orders: number; weightedTargetROI: number, totalClicksForWeight: number, dayGmv: number } } = {};
+    const totals: { [key: number]: { day: number; spend: number; gmv: number; clicks: number; orders: number; weightedTargetROI: number, totalClicksForWeight: number; dayGmv: number} } = {};
     
     results.forEach((r) => {
         if (!totals[r.day]) {
@@ -374,8 +374,8 @@ export default function MultiDaySimulator() {
                             <FormLabel>Base pCVR</FormLabel>
                              <FormControl>
                                <div className="relative">
-                                <Input type="number" step="0.01" {...field} className="pl-8" />
                                 <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input type="number" step="0.01" {...field} className="pl-8" />
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -390,8 +390,8 @@ export default function MultiDaySimulator() {
                             <FormLabel>Calib. Error</FormLabel>
                             <FormControl>
                                <div className="relative">
-                                <Input type="number" step="1" {...field} className="pl-8" />
                                 <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input type="number" step="1" {...field} className="pl-8" />
                                </div>
                             </FormControl>
                             <FormMessage />
@@ -503,6 +503,36 @@ export default function MultiDaySimulator() {
                   </CardContent>
                 </Card>
               </div>
+
+              {!isLoading && lastRunData && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Save Run</CardTitle>
+                    <CardDescription>Save the parameters and results of this simulation run.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4">
+                       <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem className="flex-grow">
+                              <FormLabel className="sr-only">Run Name</FormLabel>
+                              <FormControl>
+                                  <Input placeholder="My Winning Strategy" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      <Button onClick={handleSaveRun} type="button">
+                        <Save className="mr-2 h-4 w-4" /> Save Run
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <Button type="submit" className="w-full lg:w-auto" disabled={isLoading}>
                 {isLoading ? 'Simulating...' : <> <Sparkles className="mr-2 h-4 w-4" /> Run Simulation </>}
               </Button>
@@ -525,34 +555,6 @@ export default function MultiDaySimulator() {
         )}
         {results && results.length > 0 && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-500">
-             {!isLoading && lastRunData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Save Run</CardTitle>
-                  <CardDescription>Save the parameters and results of this simulation run.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4">
-                     <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem className="flex-grow">
-                            <FormLabel className="sr-only">Run Name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="My Winning Strategy" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    <Button onClick={handleSaveRun}>
-                      <Save className="mr-2 h-4 w-4" /> Save Run
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
             <Card>
                 <CardHeader>
                     <CardTitle>{form.getValues('numDays')}-Day Performance</CardTitle>
