@@ -970,7 +970,7 @@ export default function MultiDaySimulator() {
                                     rowClass = 'bg-destructive/20 hover:bg-destructive/20';
                                 } else if (deliveredROI >= slRoi) {
                                     if (budgetUtilisation < 0.8) {
-                                        rowClass = 'bg-amber-400/20 hover:bg-amber-400/20';
+                                        rowClass = 'bg-orange-400/20 hover:bg-orange-400/20';
                                     } else {
                                         rowClass = 'bg-emerald-500/20 hover:bg-emerald-500/20';
                                     }
@@ -1083,6 +1083,8 @@ export default function MultiDaySimulator() {
     
 
 
+
+    
 
     
 
