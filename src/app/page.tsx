@@ -93,8 +93,8 @@ export default function Home() {
                 <div className="flex items-center gap-4 border-b p-4">
                   <Header />
                 </div>
-                <div className="p-4 sm:p-8 md:p-12 w-full max-w-7xl mx-auto flex-1">
-                    <main className="mt-8">
+                <div className="p-2 sm:p-4 md:p-6 w-full max-w-7xl mx-auto flex-1">
+                    <main className="mt-2">
                         {renderContent()}
                     </main>
                 </div>
