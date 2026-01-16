@@ -690,65 +690,67 @@ export default function MultiDaySimulator() {
                         <CardDescription>Adjust the sensitivity and responsiveness of the ROI and Budget Pacing algorithms.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
-                        <div>
-                            <p className="text-sm font-medium mb-4">ROI Pacing (PID)</p>
-                            <div className="grid grid-cols-3 gap-4">
-                                <FormField
-                                  control={form.control}
-                                  name="pacingP"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>P</FormLabel>
-                                      <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="pacingI"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>I</FormLabel>
-                                      <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="pacingD"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>D</FormLabel>
-                                      <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                        <div className="space-y-6">
+                            <div>
+                                <p className="text-sm font-medium mb-4">ROI Pacing (PID)</p>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <FormField
+                                    control={form.control}
+                                    name="pacingP"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>P</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                                    <FormField
+                                    control={form.control}
+                                    name="pacingI"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>I</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                                    <FormField
+                                    control={form.control}
+                                    name="pacingD"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>D</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                                </div>
                             </div>
-                            <div className="mt-6">
+                            <div>
                                 <p className="text-sm font-medium mb-4">Budget Pacing</p>
                                 <div className="grid grid-cols-3 gap-4">
-                                  <FormField
+                                <FormField
                                     control={form.control}
                                     name="bpP"
                                     render={({ field }) => (
-                                      <FormItem>
+                                    <FormItem>
                                         <FormLabel>P</FormLabel>
                                         <FormControl>
-                                          <Input type="number" step="0.1" {...field} />
+                                        <Input type="number" step="0.1" {...field} />
                                         </FormControl>
                                         <FormMessage />
-                                      </FormItem>
+                                    </FormItem>
                                     )}
-                                  />
+                                />
                                 </div>
                             </div>
                         </div>
@@ -1108,3 +1110,4 @@ export default function MultiDaySimulator() {
     
 
     
+
