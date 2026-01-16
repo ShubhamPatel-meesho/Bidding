@@ -326,9 +326,9 @@ export default function MultiDaySimulator() {
   const dailyTotals = useMemo(() => {
     if (!results || results.length === 0) return [];
     
-    const dayData: { [key: number]: { spend: number, gmv: number, clicks: number, orders: number, weightedTargetROI: number, totalClicksForWeight: number, weightedPcvr: number, totalPcvr: number, intervalCount: number, dayCumulativeGmv: number} } = {};
+    const dayData: { [key: number]: { spend: number, gmv: number, clicks: number, orders: number, weightedTargetROI: number, totalClicksForWeight: number, weightedPcvr: number, totalPcvr: number, intervalCount: number, dayCumulativeGmv: number, totalBidValue: number} } = {};
     results.forEach(r => {
-      dayData[r.day] = dayData[r.day] || { spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0, weightedPcvr: 0, totalPcvr: 0, intervalCount: 0, dayCumulativeGmv: 0 };
+      dayData[r.day] = dayData[r.day] || { spend: 0, gmv: 0, clicks: 0, orders: 0, weightedTargetROI: 0, totalClicksForWeight: 0, weightedPcvr: 0, totalPcvr: 0, intervalCount: 0, dayCumulativeGmv: 0, totalBidValue: 0 };
       const day = dayData[r.day];
       day.spend += r.spend;
       day.gmv += r.gmv;
@@ -340,6 +340,7 @@ export default function MultiDaySimulator() {
       day.totalPcvr += r.pCvr;
       day.intervalCount += 1;
       day.dayCumulativeGmv = r.dayCumulativeGmv;
+      day.totalBidValue += r.avgBid;
     });
 
     return Object.entries(dayData).map(([day, data]) => ({
@@ -946,6 +947,7 @@ export default function MultiDaySimulator() {
                                 <TableHead className="text-right">Orders</TableHead>
                                 <TableHead className="text-right">Clicks</TableHead>
                                 <TableHead className="text-right">Avg. CPC</TableHead>
+                                <TableHead className="text-right">Click-Wt CPC</TableHead>
                                 <TableHead className="text-right">Spends</TableHead>
                                 <TableHead className="text-right">GMV</TableHead>
                                 <TableHead className="text-right">Budget Utilisation</TableHead>
@@ -959,9 +961,23 @@ export default function MultiDaySimulator() {
                                 const avgPcvr = day.intervalCount > 0 ? day.totalPcvr / day.intervalCount : 0;
                                 const weightedPcvr = day.totalClicksForWeight > 0 ? day.weightedPcvr / day.totalClicksForWeight : 0;
                                 const ordersToClicksRatio = day.clicks > 0 ? day.orders / day.clicks : 0;
-                                const avgCPC = day.clicks > 0 ? day.spend / day.clicks : 0;
+                                const avgIntervalCPC = day.intervalCount > 0 ? day.totalBidValue / day.intervalCount : 0;
+                                const clickWtCPC = day.clicks > 0 ? day.spend / day.clicks : 0;
+
+                                const slRoi = form.getValues('slRoi');
+                                let rowClass = '';
+                                if (deliveredROI < slRoi * 0.8) {
+                                    rowClass = 'bg-destructive/20 hover:bg-destructive/20';
+                                } else if (deliveredROI >= slRoi) {
+                                    if (budgetUtilisation < 0.8) {
+                                        rowClass = 'bg-amber-400/20 hover:bg-amber-400/20';
+                                    } else {
+                                        rowClass = 'bg-emerald-500/20 hover:bg-emerald-500/20';
+                                    }
+                                }
+
                                 return (
-                                    <TableRow key={`day-total-${index}`}>
+                                    <TableRow key={`day-total-${index}`} className={rowClass}>
                                         <TableCell>Day {day.day}</TableCell>
                                         <TableCell className="text-right">{formatRoi(deliveredROI)}</TableCell>
                                         <TableCell className="text-right">{formatRoi(avgTargetROI)}</TableCell>
@@ -970,7 +986,8 @@ export default function MultiDaySimulator() {
                                         <TableCell className="text-right">{formatSmallPercent(ordersToClicksRatio)}</TableCell>
                                         <TableCell className="text-right">{day.orders.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{day.clicks.toLocaleString()}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(avgCPC)}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(avgIntervalCPC)}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(clickWtCPC)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.spend)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.dayCumulativeGmv)}</TableCell>
                                         <TableCell className="text-right">{formatPercent(budgetUtilisation)}</TableCell>
@@ -1066,5 +1083,7 @@ export default function MultiDaySimulator() {
     
 
 
+
+    
 
     
