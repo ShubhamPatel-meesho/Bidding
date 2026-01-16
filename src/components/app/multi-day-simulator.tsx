@@ -594,7 +594,7 @@ export default function MultiDaySimulator() {
                             </div>
                         </div>
                         <div>
-                            <p className="text-sm font-medium mb-4">Bid Probability</p>
+                            <p className="text-sm font-medium mb-4">Click Probability</p>
                             <div className="space-y-4">
                                <FormField
                                   control={form.control}
@@ -1055,5 +1055,7 @@ export default function MultiDaySimulator() {
     </div>
   );
 }
+
+    
 
     
