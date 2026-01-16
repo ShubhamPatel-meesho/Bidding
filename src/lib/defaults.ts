@@ -18,7 +18,7 @@ export const MULTI_DAY_SIMULATOR_DEFAULTS = {
   nValue: 3000,
   kValue: 600,
   bpKValue: 75,
-  numDays: 3,
+  numDays: 5,
   modules: ['rp', 'bp'],
   upperProb: 99,
   highProb: 90,
