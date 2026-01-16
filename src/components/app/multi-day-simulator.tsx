@@ -678,7 +678,7 @@ export default function MultiDaySimulator() {
                                   name="pacingP"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>P (Prop.)</FormLabel>
+                                      <FormLabel>P</FormLabel>
                                       <FormControl>
                                         <Input type="number" step="0.01" {...field} />
                                       </FormControl>
@@ -691,7 +691,7 @@ export default function MultiDaySimulator() {
                                   name="pacingI"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>I (Integral)</FormLabel>
+                                      <FormLabel>I</FormLabel>
                                       <FormControl>
                                         <Input type="number" step="0.01" {...field} />
                                       </FormControl>
@@ -704,7 +704,7 @@ export default function MultiDaySimulator() {
                                   name="pacingD"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>D (Deriv.)</FormLabel>
+                                      <FormLabel>D</FormLabel>
                                       <FormControl>
                                         <Input type="number" step="0.01" {...field} />
                                       </FormControl>
@@ -720,7 +720,7 @@ export default function MultiDaySimulator() {
                                   name="bpP"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>P (Proportional)</FormLabel>
+                                      <FormLabel>P</FormLabel>
                                       <FormControl>
                                         <Input type="number" step="0.1" {...field} />
                                       </FormControl>
