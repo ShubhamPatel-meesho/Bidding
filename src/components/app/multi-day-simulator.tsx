@@ -47,6 +47,10 @@ const formSchema = z.object({
   overallError: z.coerce.number(), // Can be positive or negative
   dayVolatility: z.coerce.number().min(0).max(100, { message: "Must be between 0 and 100" }),
   volatility: z.coerce.number().min(0).max(100, { message: "Must be between 0 and 100" }),
+  upperProb: z.coerce.number().min(0).max(100),
+  highProb: z.coerce.number().min(0).max(100),
+  midProb: z.coerce.number().min(0).max(100),
+  lowProb: z.coerce.number().min(0).max(100),
   pacingP: z.coerce.number().min(0),
   pacingI: z.coerce.number().min(0),
   pacingD: z.coerce.number().min(0),
@@ -177,6 +181,10 @@ export default function MultiDaySimulator() {
         overallError: selectedEntry.overallError * 100, // convert back to percentage for display
         dayVolatility: selectedEntry.dayVolatility * 100,
         volatility: selectedEntry.volatility * 100, // convert back to percentage for display
+        upperProb: selectedEntry.upperProb * 100,
+        highProb: selectedEntry.highProb * 100,
+        midProb: selectedEntry.midProb * 100,
+        lowProb: selectedEntry.lowProb * 100,
         bpP: selectedEntry.bpP ?? 20,
         modules: selectedEntry.modules ?? ['rp', 'bp'],
         bpKValue: selectedEntry.bpKValue ?? 75,
@@ -203,6 +211,10 @@ export default function MultiDaySimulator() {
         overallError: data.overallError / 100, // Convert from % to decimal
         dayVolatility: data.dayVolatility / 100,
         volatility: data.volatility / 100, // Convert from % to decimal
+        upperProb: data.upperProb / 100,
+        highProb: data.highProb / 100,
+        midProb: data.midProb / 100,
+        lowProb: data.lowProb / 100,
       };
       
       const simulationGenerator = runMultiDaySimulation(simulationParams);
@@ -282,6 +294,10 @@ export default function MultiDaySimulator() {
         overallError: lastRunData.overallError / 100,
         dayVolatility: lastRunData.dayVolatility / 100,
         volatility: lastRunData.volatility / 100,
+        upperProb: lastRunData.upperProb / 100,
+        highProb: lastRunData.highProb / 100,
+        midProb: lastRunData.midProb / 100,
+        lowProb: lastRunData.lowProb / 100,
     };
     
     setLeaderboard(current => [newEntry, ...current].sort((a, b) => b.finalDeliveredROI - a.finalDeliveredROI).slice(0, 20));
@@ -501,7 +517,7 @@ export default function MultiDaySimulator() {
                   )}
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-sm font-medium mb-2">pCVR Configuration</p>
@@ -718,6 +734,77 @@ export default function MultiDaySimulator() {
                       </div>
                     </TooltipProvider>
                   </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                    <p className="text-sm font-medium mb-2">Bid Probability</p>
+                    <div className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="upperProb"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prob. at ₹2.00 bid</FormLabel>
+                                <FormControl>
+                                <div className="relative">
+                                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input type="number" step="1" {...field} className="pl-8" />
+                                </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="highProb"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prob. at ₹1.00 bid</FormLabel>
+                                <FormControl>
+                                <div className="relative">
+                                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input type="number" step="1" {...field} className="pl-8" />
+                                </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="midProb"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prob. at ₹0.15 bid</FormLabel>
+                                <FormControl>
+                                <div className="relative">
+                                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input type="number" step="1" {...field} className="pl-8" />
+                                </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="lowProb"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prob. at ₹0.04 bid</FormLabel>
+                                <FormControl>
+                                <div className="relative">
+                                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input type="number" step="1" {...field} className="pl-8" />
+                                </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                    </CardContent>
                 </Card>
               </div>
 

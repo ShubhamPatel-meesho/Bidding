@@ -69,6 +69,10 @@ export type MultiDaySimulationParams = {
   kValue: number;
   bpKValue: number;
   modules: string[];
+  upperProb: number;
+  highProb: number;
+  midProb: number;
+  lowProb: number;
 };
 
 export type TimeIntervalResult = {

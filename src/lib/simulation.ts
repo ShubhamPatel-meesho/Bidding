@@ -6,6 +6,7 @@
 
 
 
+
 import { getAdjustedPCVR } from "@/app/actions";
 import type { SimulationResults, SimulationWindowResult, MultiDaySimulationParams, TimeIntervalResult } from "./types";
 import { BID_PROBABILITY } from './defaults';
@@ -69,16 +70,24 @@ const exponentialScale = (bid: number, minBid: number, maxBid: number, minProb: 
     return minProb + scaledProb * (maxProb - minProb);
 };
 
+type BidProbabilities = {
+    UPPER_PROB: number;
+    HIGH_PROB: number;
+    MID_PROB: number;
+    LOW_PROB: number;
+};
 
-const getClickAttainmentFactor = (bid: number): number => {
+const getClickAttainmentFactor = (bid: number, probs: BidProbabilities): number => {
     const {
-        UPPER_BID, UPPER_PROB, HIGH_BID, HIGH_PROB,
-        MID_BID, MID_PROB, LOW_BID, LOW_PROB, THROTTLE_BID
+        UPPER_BID, HIGH_BID,
+        MID_BID, LOW_BID, THROTTLE_BID
     } = BID_PROBABILITY;
+
+    const { UPPER_PROB, HIGH_PROB, MID_PROB, LOW_PROB } = probs;
 
     if (bid >= UPPER_BID) return UPPER_PROB;
     if (bid >= HIGH_BID) {
-        // Linear scale from 1.0 to 2.0 -> 90% to 99%
+        // Linear scale from 1.0 to 2.0 -> HIGH_PROB to UPPER_PROB
         const position = (bid - HIGH_BID) / (UPPER_BID - HIGH_BID);
         return HIGH_PROB + position * (UPPER_PROB - HIGH_PROB);
     }
@@ -122,7 +131,12 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
     }
     
     const bid = contextualPCVR * (aov / targetROI);
-    const clickAttainmentFactor = getClickAttainmentFactor(bid);
+    const clickAttainmentFactor = getClickAttainmentFactor(bid, {
+        UPPER_PROB: BID_PROBABILITY.UPPER_PROB,
+        HIGH_PROB: BID_PROBABILITY.HIGH_PROB,
+        MID_PROB: BID_PROBABILITY.MID_PROB,
+        LOW_PROB: BID_PROBABILITY.LOW_PROB,
+    });
 
     // 4. Simulate Clicks
     let totalClicks = 0;
@@ -196,7 +210,7 @@ export async function runSimulation(roiTargets: number[], aov: number, budget: n
 export async function* runMultiDaySimulation(
     params: MultiDaySimulationParams
 ): AsyncGenerator<TimeIntervalResult | undefined, void, undefined> {
-  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, bpP, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, bpKValue, basePCVR, overallError, dayVolatility, volatility, modules } = params;
+  const { slRoi, initialTargetRoi, pacingP, pacingI, pacingD, bpP, dailyBudget, numDays, initialDeliveredRoi, aov, nValue, kValue, bpKValue, basePCVR, overallError, dayVolatility, volatility, modules, upperProb, highProb, midProb, lowProb } = params;
 
   let recentHistory: { spend: number, gmv: number, clicks: number, orders: number }[] = [];
   
@@ -313,7 +327,12 @@ export async function* runMultiDaySimulation(
     const bid = pCvrForBidding * (aov / currentTargetRoi);
     
     // 3. Simulate clicks based on the bid.
-    const clickAttainmentFactor = getClickAttainmentFactor(bid);
+    const clickAttainmentFactor = getClickAttainmentFactor(bid, {
+        UPPER_PROB: upperProb,
+        HIGH_PROB: highProb,
+        MID_PROB: midProb,
+        LOW_PROB: lowProb,
+    });
     
     const clickPotential = clickPotentialByInterval[intervalIndexInDay] / INTERVALS_PER_HOUR;
     const maxIntervalClicks = HIGH_CLICKS_PER_HOUR * clickPotential * randomInRange(0.9, 1.1) * clickAttainmentFactor;

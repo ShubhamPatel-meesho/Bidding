@@ -20,6 +20,10 @@ export const MULTI_DAY_SIMULATOR_DEFAULTS = {
   bpKValue: 75,
   numDays: 3,
   modules: ['rp', 'bp'],
+  upperProb: 99,
+  highProb: 90,
+  midProb: 5,
+  lowProb: 1,
 };
 
 // --- New Bidding Probability Constants ---
