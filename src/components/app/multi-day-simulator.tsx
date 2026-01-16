@@ -67,7 +67,7 @@ const formSchema = z.object({
 type MultiDayFormValues = z.infer<typeof formSchema>;
 
 const formatRoi = (value: number) => value.toFixed(2);
-const formatCurrency = (value: number) => `₹${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const formatCurrency = (value: number) => `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatYAxisCurrency = (value: number) => {
     if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
     if (value >= 1000) return `₹${(value / 1000).toFixed(0)}k`;
@@ -943,6 +943,7 @@ export default function MultiDaySimulator() {
                                 <TableHead className="text-right">Actual O/C</TableHead>
                                 <TableHead className="text-right">Orders</TableHead>
                                 <TableHead className="text-right">Clicks</TableHead>
+                                <TableHead className="text-right">Avg. CPC</TableHead>
                                 <TableHead className="text-right">Spends</TableHead>
                                 <TableHead className="text-right">GMV</TableHead>
                                 <TableHead className="text-right">Budget Utilisation</TableHead>
@@ -956,6 +957,7 @@ export default function MultiDaySimulator() {
                                 const avgPcvr = day.intervalCount > 0 ? day.totalPcvr / day.intervalCount : 0;
                                 const weightedPcvr = day.totalClicksForWeight > 0 ? day.weightedPcvr / day.totalClicksForWeight : 0;
                                 const ordersToClicksRatio = day.clicks > 0 ? day.orders / day.clicks : 0;
+                                const avgCPC = day.clicks > 0 ? day.spend / day.clicks : 0;
                                 return (
                                     <TableRow key={`day-total-${index}`}>
                                         <TableCell>Day {day.day}</TableCell>
@@ -966,6 +968,7 @@ export default function MultiDaySimulator() {
                                         <TableCell className="text-right">{formatSmallPercent(ordersToClicksRatio)}</TableCell>
                                         <TableCell className="text-right">{day.orders.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{day.clicks.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(avgCPC)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.spend)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(day.dayCumulativeGmv)}</TableCell>
                                         <TableCell className="text-right">{formatPercent(budgetUtilisation)}</TableCell>
@@ -1059,3 +1062,4 @@ export default function MultiDaySimulator() {
     
 
     
+
