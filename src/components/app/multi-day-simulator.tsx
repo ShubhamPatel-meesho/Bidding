@@ -426,98 +426,99 @@ export default function MultiDaySimulator() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                <FormField
-                  control={form.control}
-                  name="numDays"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Simulation Days</FormLabel>
-                       <FormControl>
-                        <div className="relative">
-                          <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="number" {...field} className="pl-8" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="dailyBudget"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Daily Budget</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="number" placeholder="300" {...field} className="pl-8" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="aov"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Average Order Value</FormLabel>
-                       <FormControl>
-                        <div className="relative">
-                          <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="number" {...field} className="pl-8" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="slRoi"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Stop-loss ROI</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input type="number" placeholder="10" {...field} className="pl-8" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="initialTargetRoi"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Starting Target ROI</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="initialDeliveredRoi"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Starting Delivered ROI</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                      <CardTitle>Campaign Properties</CardTitle>
+                      <CardDescription>Set the core budget and ROI constraints.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="dailyBudget"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Daily Budget</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input type="number" placeholder="300" {...field} className="pl-8" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="slRoi"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Stop-loss ROI</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input type="number" placeholder="10" {...field} className="pl-8" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                      <CardTitle>Simulation Properties</CardTitle>
+                      <CardDescription>Define the duration and starting state.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="numDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Simulation Days</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input type="number" {...field} className="pl-8" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="initialTargetRoi"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Starting Target ROI</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="initialDeliveredRoi"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Starting Delivered ROI</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
               </div>
+
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                  <Card>
                     <CardHeader>
@@ -525,6 +526,24 @@ export default function MultiDaySimulator() {
                         <CardDescription>Define the underlying performance characteristics and market competition for this catalog.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
+                       <div className="md:col-span-2">
+                        <FormField
+                          control={form.control}
+                          name="aov"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Average Order Value</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  <Input type="number" {...field} className="pl-8" />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                       </div>
                         <div>
                             <p className="text-sm font-medium mb-4">pCVR Configuration</p>
                             <div className="space-y-4">
