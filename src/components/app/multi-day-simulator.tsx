@@ -715,19 +715,21 @@ export default function MultiDaySimulator() {
                             </div>
                             <div className="mt-6">
                                 <p className="text-sm font-medium mb-4">Budget Pacing</p>
-                                <FormField
-                                  control={form.control}
-                                  name="bpP"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>P</FormLabel>
-                                      <FormControl>
-                                        <Input type="number" step="0.1" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                                <div className="grid grid-cols-3 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="bpP"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>P</FormLabel>
+                                        <FormControl>
+                                          <Input type="number" step="0.1" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
                             </div>
                         </div>
                         <div>
@@ -1063,3 +1065,6 @@ export default function MultiDaySimulator() {
 
     
 
+
+
+    
